@@ -9,7 +9,7 @@ const SETTINGS = Object.freeze({
 });
 
 const REPO_RAW = "https://raw.githubusercontent.com/lxy-l/runestone-hako/main";
-const ICON_BASE = "https://cdn.jsdelivr.net/gh/lxy-l/runestone-hako@main/assets/icons";
+const ICON_BASE = "https://cdn.jsdelivr.net/gh/lxy-l/runestone-hako@main/assets/icons/png";
 const RULE_BASE = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta";
 
 const GROUP = Object.freeze({
@@ -41,37 +41,37 @@ const REGIONS = Object.freeze([
 ]);
 
 const ICONS = Object.freeze({
-  Proxy: "waypoints.svg",
-  Final: "fish-symbol.svg",
-  CN: "cn.svg",
-  US: "us.svg",
-  JP: "jp.svg",
-  SG: "sg.svg",
-  Other: "globe.svg",
-  Apple: "apple.svg",
-  "Apple Push": "bell-ring.svg",
-  "APNs-Fallback": "refresh-cw.svg",
-  Google: "google.svg",
-  Microsoft: "microsoft.svg",
-  OpenAI: "openai.svg",
-  Anthropic: "anthropic.svg",
-  GitHub: "github.svg",
-  Telegram: "telegram.svg",
-  X: "x.svg",
-  Cloudflare: "cloudflare.svg",
-  Amazon: "amazon.svg",
-  TikTok: "tiktok.svg",
-  "Disney+": "disney-plus.svg",
-  Spotify: "spotify.svg",
-  Meta: "meta.svg",
-  Emby: "emby.svg",
-  YouTube: "youtube.svg",
-  Netflix: "netflix.svg",
-  HBO: "hbo.svg",
-  PrimeVideo: "prime-video.svg",
-  Bahamut: "bahamut.svg",
-  Bilibili: "bilibili.svg",
-  Steam: "steam.svg",
+  Proxy: "waypoints.png",
+  Final: "fish-symbol.png",
+  CN: "cn.png",
+  US: "us.png",
+  JP: "jp.png",
+  SG: "sg.png",
+  Other: "globe.png",
+  Apple: "apple.png",
+  "Apple Push": "bell-ring.png",
+  "APNs-Fallback": "refresh-cw.png",
+  Google: "google.png",
+  Microsoft: "microsoft.png",
+  OpenAI: "openai.png",
+  Anthropic: "anthropic.png",
+  GitHub: "github.png",
+  Telegram: "telegram.png",
+  X: "x.png",
+  Cloudflare: "cloudflare.png",
+  Amazon: "amazon.png",
+  TikTok: "tiktok.png",
+  "Disney+": "disney-plus.png",
+  Spotify: "spotify.png",
+  Meta: "meta.png",
+  Emby: "emby.png",
+  YouTube: "youtube.png",
+  Netflix: "netflix.png",
+  HBO: "hbo.png",
+  PrimeVideo: "prime-video.png",
+  Bahamut: "bahamut.png",
+  Bilibili: "bilibili.png",
+  Steam: "steam.png",
 });
 
 const SERVICE_DEFS = Object.freeze([
