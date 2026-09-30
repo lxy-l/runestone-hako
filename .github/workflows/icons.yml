@@ -23,7 +23,7 @@ jobs:
         run: bash scripts/generate-icons.sh
       - name: Commit generated icons
         run: |
-          if git diff --quiet -- assets/icons/png; then
+          if [ -z "$(git status --porcelain -- assets/icons/png)" ]; then
             echo "PNG icons are already up to date."
             exit 0
           fi
