@@ -1,116 +1,156 @@
-# Design notes
+# Runestone v2 design
 
 ## Scope
 
-Runestone is a **routing-only post-merge transform** for Hako/Mihomo. Its job is
-not to replace the whole profile. The incoming profile remains authoritative
-for platform-sensitive settings such as DNS, TUN, listeners, controller,
-proxy providers and the actual proxy nodes.
+Runestone is a routing-only Hako/Mihomo post-merge transform.
 
-Runestone changes only the parts needed to provide a consistent routing model:
+The incoming profile remains authoritative for DNS, TUN, listeners, controller,
+proxy providers and real proxy nodes. Runestone rebuilds only policy groups,
+rule providers and routing rules.
 
-- `mode` (forced to `rule`)
-- `profile.store-selected` (enabled only when missing)
-- `proxy-groups`
-- `rule-providers`
-- `rules`
+## Core groups
 
-## Why routing-only
+### Proxy
 
-The Clash configuration guide recommends starting from a configuration whose
-behavior is understood, avoiding unnecessary optimization layers, and not
-copying LAN/controller/TUN settings without a concrete reason. Apple platforms
-also manage parts of DNS/TUN/provider storage at the app boundary.
+`Proxy` is the normal manual proxy selector. It exposes only regions that
+actually exist in the merged node set, plus `DIRECT`.
 
-A Hako post-merge script therefore has a useful separation of responsibilities:
+Preferred order:
 
-1. Hako merges node sources and owns platform/network settings.
-2. Runestone classifies the already-merged nodes.
-3. Runestone generates policy groups and routing rules.
-4. Mihomo evaluates those rules at runtime.
+`US -> JP -> SG -> CN -> Other -> DIRECT`
 
-## Policy hierarchy
+There is no separate global automatic-selection group.
 
-### Manual and automatic entry points
+### Final
 
-- `🧭 PROXY-Gate`: normal manual entry point.
-- `⚡ Global-Auto`: latency-based `url-test` across usable nodes.
-- `🛟 Global-Fallback`: ordered health failover across available regional groups.
-- `🖥️ All-Nodes`: manual per-node selection.
+`Final` is independent from `Proxy` and receives only unmatched traffic:
 
-`url-test` and `fallback` are not interchangeable. `url-test` chooses a fast
-candidate. `fallback` walks candidates in order and keeps the first healthy one.
+`MATCH,Final`
 
-### Regional groups
+This keeps catch-all behavior independently controllable.
 
-A region is created only when at least one matching node exists.
+## Regions
 
-- one node: `select` with one member (no pointless health race);
-- two or more: `url-test` with lazy checks.
+Only five visible regions are generated:
 
-The region list is intentionally explicit so the matching rules can be audited.
+- `CN` — mainland China, Hong Kong and Taiwan nodes
+- `US`
+- `JP`
+- `SG`
+- `Other`
 
-### Apple Push
+Every node not recognized as CN/US/JP/SG enters `Other`.
 
-Apple Push is intentionally separated from the normal proxy gate:
+Two or more nodes in a region use `url-test`; one node uses a one-member
+`select` group.
 
-`*.push.apple.com -> 🍎 Apple-Push -> 🍎 APNs-Fallback / DIRECT / 🧭 PROXY-Gate`
+## Apple Push
 
-The fallback health check tests candidate reachability. It cannot prove that the
-APNs service itself is healthy.
+APNs remains independently controllable:
+
+```text
+*.push.apple.com
+        ↓
+Apple Push
+├── DIRECT
+├── APNs-Fallback
+└── Proxy
+```
+
+`APNs-Fallback` is intentionally small and uses:
+
+`JP -> SG -> US`
+
+with Mihomo `fallback` semantics. It is a backup path, not a generic
+all-node failover pool.
+
+## Service policies
+
+The generic AI policy is removed. AI traffic is divided into:
+
+- OpenAI
+- Anthropic
+- Google (including Gemini)
+
+Other visible service groups are Microsoft, GitHub, Telegram, X, Cloudflare,
+Amazon, TikTok, Disney+, Spotify, Meta, Emby, YouTube, Netflix, HBO,
+PrimeVideo, Bahamut, Bilibili and Steam.
+
+Service groups intentionally have different target choices instead of sharing
+one oversized template.
+
+## Rule ordering
+
+Specific services must precede broader overlapping rules:
+
+1. private/LAN
+2. Apple Push
+3. OpenAI / Anthropic
+4. YouTube / Google
+5. GitHub / Telegram / X / Cloudflare
+6. streaming services
+7. Amazon / TikTok / Meta / Steam
+8. Apple / Microsoft
+9. Bilibili
+10. CN direct rules
+11. `MATCH,Final`
+
+Important guarantees:
+
+- Apple Push before Apple
+- YouTube before Google
+- PrimeVideo before Amazon
+- Bilibili before CN direct rules
 
 ## Rule providers
 
-Large `domain` and `ipcidr` providers use Mihomo MRS resources when available.
-MRS reduces parsing work and is particularly useful on iOS where the Network
-Extension has tighter memory constraints.
+MRS from MetaCubeX/meta-rules-dat is preferred for domain/ipcidr providers.
 
-Rules are ordered from specific to broad:
+Emby currently uses a small self-hosted classical rule file because there is no
+suitable MetaCubeX MRS category for the desired policy.
 
-1. literal private/LAN ranges;
-2. Apple Push;
-3. explicit service providers;
-4. broad non-CN geography;
-5. CN direct rules;
-6. final `MATCH` to the proxy gate.
+## SVG icons
 
-Literal private CIDRs are retained even though a remote private rule provider
-also exists. LAN access should not depend entirely on the availability of a
-remote rule download.
+Every generated visible group has a self-hosted SVG icon under
+`assets/icons/`.
+
+Functional icons use Lucide:
+
+- Proxy — waypoints
+- Final — fish-symbol
+- Other — globe
+- Apple Push — bell-ring
+- APNs-Fallback — refresh-cw
+
+Region flags use flag-icons. Brand icons are self-hosted copies from the
+approved upstream SVG sources documented in `assets/icons/README.md`.
 
 ## Preserving dialer-proxy dependencies
 
-Hako profiles may contain chained nodes whose `dialer-proxy` points at an
-existing proxy group. Replacing every original group would leave those nodes
-with dangling references.
+Original groups are not blindly retained. Runestone computes the dependency
+closure of groups referenced by proxy `dialer-proxy` fields and preserves only
+those required groups.
 
-Runestone scans every node for `dialer-proxy`, recursively follows referenced
-original groups, and preserves only that dependency closure. Unrelated original
-groups are discarded so the generated policy layout remains deterministic.
+Dangling references fail generation instead of producing a silently broken
+profile.
 
 ## Validation
 
-Runestone fails instead of silently emitting ambiguous configuration when it
-finds:
+Runestone validates:
 
-- invalid or empty proxy input;
-- duplicate proxy names;
-- duplicate required original group names;
-- generated group-name collisions;
-- dangling `dialer-proxy` references;
-- missing proxy-group members;
-- missing proxy providers referenced by preserved groups;
-- rules targeting groups that do not exist.
+- non-empty merged proxies
+- duplicate proxy names
+- generated group-name collisions
+- preserved-group collisions
+- dangling `dialer-proxy`
+- missing group members
+- missing rule providers
+- missing rule targets
 
-This is deliberate: a visible merge error is preferable to a profile that
-activates but routes traffic differently from what the user expects.
+## Security
 
-## Security boundary
-
-The repository contains no real provider/Profile URLs, tokens, passwords,
-UUID credentials, private keys, logs or controller secrets. Subscription URLs
-should be treated as credentials and kept out of screenshots, issues and public
-commits.
+No subscription URLs, tokens, UUID credentials, controller secrets or private
+keys belong in this repository.
 
 ## References
 
