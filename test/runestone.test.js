@@ -11,6 +11,7 @@ function groupByName(result, name) {
   return result["proxy-groups"].find((g) => g.name === name);
 }
 
+// Routing-only: unrelated network-layer fields survive the transform.
 {
   const input = {
     "mixed-port": 7890,
@@ -29,6 +30,7 @@ function groupByName(result, name) {
   assert.equal(output.profile["store-selected"], true);
 }
 
+// 2+ nodes => regional url-test; 1 node => one-member select.
 {
   const output = main({
     proxies: [proxy("🇯🇵 JP-01"), proxy("🇯🇵 JP-02"), proxy("🇺🇸 US-01")],
@@ -46,6 +48,7 @@ function groupByName(result, name) {
   assert.deepEqual(fallback.proxies, ["🇯🇵 JP-Auto", "🇺🇸 US-Auto"]);
 }
 
+// Subscription-info pseudo nodes are excluded from automatic candidates.
 {
   const output = main({
     proxies: [proxy("🇸🇬 SG-01"), proxy("剩余流量 100 GB")],
@@ -54,6 +57,7 @@ function groupByName(result, name) {
   assert.deepEqual(groupByName(output, GROUP.allNodes).proxies, ["🇸🇬 SG-01"]);
 }
 
+// Required original dialer-proxy groups (and their nested dependencies) survive.
 {
   const output = main({
     proxies: [
@@ -74,11 +78,13 @@ function groupByName(result, name) {
   assert(!names.includes("Unused"));
 }
 
+// Duplicate node names are rejected.
 assert.throws(
   () => main({ proxies: [proxy("same"), proxy("same")] }),
   /Duplicate proxy node name/,
 );
 
+// Dangling dialer-proxy is rejected.
 assert.throws(
   () => main({ proxies: [proxy("Node", { "dialer-proxy": "Missing" })] }),
   /dangling dialer-proxy/,
