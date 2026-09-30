@@ -1,6 +1,6 @@
-# SVG icon sources
+# Icon sources and Hako PNG assets
 
-These files are self-hosted so the Hako profile only depends on this repository for UI artwork.
+SVG files are the source artwork. GitHub Actions generates 144×144 transparent PNG files under `assets/icons/png/` for Hako compatibility.
 
 | Files | Source |
 |---|---|
@@ -10,7 +10,7 @@ These files are self-hosted so the Hako profile only depends on this repository 
 | anthropic.svg | Simple Icons |
 | bahamut.svg | approved Bahamut SVG source used by the project |
 
-Upstream projects retain their own licenses and brand/trademark terms. Brand marks remain subject to their respective trademark policies.
+The generated PNG files are derived from the SVG sources and are not edited independently. Upstream projects retain their own licenses and brand/trademark terms. Brand marks remain subject to their respective trademark policies.
 
 Sources:
 
