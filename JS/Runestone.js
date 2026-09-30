@@ -1,16 +1,5 @@
 "use strict";
 
-/**
- * Runestone - routing-only post-merge override for Hako / Mihomo.
- *
- * Design goals:
- * - Keep the incoming network layer intact (DNS/TUN/listeners/controller/etc.).
- * - Rebuild only policy groups, rule providers and rules.
- * - Prefer MRS rule providers for lower parsing/memory overhead.
- * - Preserve original proxy groups only when they are required by dialer-proxy.
- * - Fail fast on ambiguous or broken references instead of emitting a bad profile.
- */
-
 const SETTINGS = Object.freeze({
   testUrl: "https://www.gstatic.com/generate_204",
   testInterval: 300,
@@ -19,14 +8,96 @@ const SETTINGS = Object.freeze({
   ruleInterval: 86400,
 });
 
+const REPO_RAW = "https://raw.githubusercontent.com/lxy-l/runestone-hako/main";
+const ICON_BASE = `${REPO_RAW}/assets/icons`;
+const RULE_BASE = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta";
+
 const GROUP = Object.freeze({
-  gate: "🧭 PROXY-Gate",
-  globalAuto: "⚡ Global-Auto",
-  globalFallback: "🛟 Global-Fallback",
-  allNodes: "🖥️ All-Nodes",
-  apnsFallback: "🍎 APNs-Fallback",
-  applePush: "🍎 Apple-Push",
+  proxy: "Proxy",
+  final: "Final",
+  applePush: "Apple Push",
+  apnsFallback: "APNs-Fallback",
 });
+
+const REGION_ORDER = Object.freeze(["CN", "US", "JP", "SG", "Other"]);
+
+const REGIONS = Object.freeze([
+  {
+    id: "CN",
+    re: /(?:🇨🇳|🇭🇰|🇹🇼|中国|中國|大陆|大陸|香港|台湾|台灣|China|Hong\s*Kong|Taiwan|\bCN\b|\bHK\b|\bTW\b)/i,
+  },
+  {
+    id: "US",
+    re: /(?:🇺🇸|美国|美國|United\s*States|America|\bUSA?\b)/i,
+  },
+  {
+    id: "JP",
+    re: /(?:🇯🇵|日本|Japan|Tokyo|Osaka|\bJP\b)/i,
+  },
+  {
+    id: "SG",
+    re: /(?:🇸🇬|新加坡|Singapore|\bSG\b)/i,
+  },
+]);
+
+const ICONS = Object.freeze({
+  Proxy: "waypoints.svg",
+  Final: "fish-symbol.svg",
+  CN: "cn.svg",
+  US: "us.svg",
+  JP: "jp.svg",
+  SG: "sg.svg",
+  Other: "globe.svg",
+  Apple: "apple.svg",
+  "Apple Push": "bell-ring.svg",
+  "APNs-Fallback": "refresh-cw.svg",
+  Google: "google.svg",
+  Microsoft: "microsoft.svg",
+  OpenAI: "openai.svg",
+  Anthropic: "anthropic.svg",
+  GitHub: "github.svg",
+  Telegram: "telegram.svg",
+  X: "x.svg",
+  Cloudflare: "cloudflare.svg",
+  Amazon: "amazon.svg",
+  TikTok: "tiktok.svg",
+  "Disney+": "disney-plus.svg",
+  Spotify: "spotify.svg",
+  Meta: "meta.svg",
+  Emby: "emby.svg",
+  YouTube: "youtube.svg",
+  Netflix: "netflix.svg",
+  HBO: "hbo.svg",
+  PrimeVideo: "prime-video.svg",
+  Bahamut: "bahamut.svg",
+  Bilibili: "bilibili.svg",
+  Steam: "steam.svg",
+});
+
+const SERVICE_DEFS = Object.freeze([
+  { name: "Apple", targets: ["DIRECT", GROUP.proxy, "US", "JP", "SG"] },
+  { name: "Google", targets: [GROUP.proxy, "US", "JP", "SG", "DIRECT"] },
+  { name: "Microsoft", targets: ["DIRECT", GROUP.proxy, "US", "JP"] },
+  { name: "OpenAI", targets: ["US", "JP", "SG", GROUP.proxy] },
+  { name: "Anthropic", targets: ["US", "JP", "SG", GROUP.proxy] },
+  { name: "GitHub", targets: [GROUP.proxy, "US", "JP", "SG", "DIRECT"] },
+  { name: "Telegram", targets: [GROUP.proxy, "SG", "US", "JP", "Other"] },
+  { name: "X", targets: [GROUP.proxy, "US", "JP", "SG", "Other"] },
+  { name: "Cloudflare", targets: [GROUP.proxy, "DIRECT", "US", "JP", "SG"] },
+  { name: "Amazon", targets: [GROUP.proxy, "US", "JP", "SG", "DIRECT"] },
+  { name: "TikTok", targets: [GROUP.proxy, "US", "JP", "SG", "Other"] },
+  { name: "Disney+", targets: [GROUP.proxy, "US", "JP", "SG", "Other"] },
+  { name: "Spotify", targets: [GROUP.proxy, "US", "JP", "SG", "DIRECT"] },
+  { name: "Meta", targets: [GROUP.proxy, "US", "JP", "SG", "Other"] },
+  { name: "Emby", targets: [GROUP.proxy, "DIRECT", "US", "JP", "SG", "Other"] },
+  { name: "YouTube", targets: [GROUP.proxy, "US", "JP", "SG", "CN"] },
+  { name: "Netflix", targets: [GROUP.proxy, "US", "JP", "SG", "Other"] },
+  { name: "HBO", targets: [GROUP.proxy, "US", "JP", "SG", "Other"] },
+  { name: "PrimeVideo", targets: [GROUP.proxy, "US", "JP", "SG", "Other"] },
+  { name: "Bahamut", targets: ["CN", "JP", "SG", GROUP.proxy] },
+  { name: "Bilibili", targets: ["DIRECT", "CN", GROUP.proxy] },
+  { name: "Steam", targets: ["DIRECT", GROUP.proxy, "US", "JP", "SG"] },
+]);
 
 const BUILTIN_OUTBOUNDS = new Set([
   "DIRECT",
@@ -36,54 +107,7 @@ const BUILTIN_OUTBOUNDS = new Set([
   "COMPATIBLE",
 ]);
 
-const INFO_NODE_RE = /(?:剩余|流量|套餐|到期|过期|官网|网站|订阅|traffic|expire|quota|reset|官网|客服)/i;
-
-const REGIONS = [
-  { id: "HK", flag: "🇭🇰", re: /(?:🇭🇰|香港|Hong\s*Kong|\bHK\b)/i },
-  { id: "TW", flag: "🇹🇼", re: /(?:🇹🇼|台湾|台灣|Taiwan|\bTW\b)/i },
-  { id: "JP", flag: "🇯🇵", re: /(?:🇯🇵|日本|Japan|Tokyo|Osaka|\bJP\b)/i },
-  { id: "SG", flag: "🇸🇬", re: /(?:🇸🇬|新加坡|Singapore|\bSG\b)/i },
-  { id: "US", flag: "🇺🇸", re: /(?:🇺🇸|美国|美國|United\s*States|America|\bUSA?\b)/i },
-  { id: "KR", flag: "🇰🇷", re: /(?:🇰🇷|韩国|韓國|Korea|Seoul|\bKR\b)/i },
-  { id: "CA", flag: "🇨🇦", re: /(?:🇨🇦|加拿大|Canada|\bCA\b)/i },
-  { id: "UK", flag: "🇬🇧", re: /(?:🇬🇧|英国|英國|United\s*Kingdom|Britain|England|\bUK\b|\bGB\b)/i },
-  { id: "DE", flag: "🇩🇪", re: /(?:🇩🇪|德国|德國|Germany|Frankfurt|\bDE\b)/i },
-  { id: "FR", flag: "🇫🇷", re: /(?:🇫🇷|法国|法國|France|Paris|\bFR\b)/i },
-  { id: "NL", flag: "🇳🇱", re: /(?:🇳🇱|荷兰|荷蘭|Netherlands|Amsterdam|\bNL\b)/i },
-  { id: "CH", flag: "🇨🇭", re: /(?:🇨🇭|瑞士|Switzerland|Zurich|\bCH\b)/i },
-  { id: "SE", flag: "🇸🇪", re: /(?:🇸🇪|瑞典|Sweden|Stockholm|\bSE\b)/i },
-  { id: "NO", flag: "🇳🇴", re: /(?:🇳🇴|挪威|Norway|Oslo|\bNO\b)/i },
-  { id: "FI", flag: "🇫🇮", re: /(?:🇫🇮|芬兰|芬蘭|Finland|Helsinki|\bFI\b)/i },
-  { id: "PL", flag: "🇵🇱", re: /(?:🇵🇱|波兰|波蘭|Poland|Warsaw|\bPL\b)/i },
-  { id: "IT", flag: "🇮🇹", re: /(?:🇮🇹|意大利|Italy|Milan|Rome|\bIT\b)/i },
-  { id: "ES", flag: "🇪🇸", re: /(?:🇪🇸|西班牙|Spain|Madrid|\bES\b)/i },
-  { id: "AU", flag: "🇦🇺", re: /(?:🇦🇺|澳大利亚|澳大利亞|Australia|Sydney|Melbourne|\bAU\b)/i },
-  { id: "NZ", flag: "🇳🇿", re: /(?:🇳🇿|新西兰|紐西蘭|New\s*Zealand|Auckland|\bNZ\b)/i },
-  { id: "IN", flag: "🇮🇳", re: /(?:🇮🇳|印度|India|Mumbai|Delhi|\bIN\b)/i },
-  { id: "MY", flag: "🇲🇾", re: /(?:🇲🇾|马来西亚|馬來西亞|Malaysia|Kuala\s*Lumpur|\bMY\b)/i },
-  { id: "TH", flag: "🇹🇭", re: /(?:🇹🇭|泰国|泰國|Thailand|Bangkok|\bTH\b)/i },
-  { id: "VN", flag: "🇻🇳", re: /(?:🇻🇳|越南|Vietnam|Hanoi|Saigon|Ho\s*Chi\s*Minh|\bVN\b)/i },
-  { id: "PH", flag: "🇵🇭", re: /(?:🇵🇭|菲律宾|菲律賓|Philippines|Manila|\bPH\b)/i },
-  { id: "ID", flag: "🇮🇩", re: /(?:🇮🇩|印度尼西亚|印度尼西亞|Indonesia|Jakarta|\bID\b)/i },
-  { id: "RU", flag: "🇷🇺", re: /(?:🇷🇺|俄罗斯|俄羅斯|Russia|Moscow|\bRU\b)/i },
-];
-
-const SERVICES = [
-  "🤖 AI",
-  "🔎 Google",
-  "📺 YouTube",
-  "💻 GitHub",
-  "✈️ Telegram",
-  "🎬 Netflix",
-  "🎵 Spotify",
-  "🪟 Microsoft",
-  "🍎 Apple",
-  "📦 Amazon",
-  "🎨 Pixiv",
-  "💼 LinkedIn",
-];
-
-const RULE_BASE = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta";
+const INFO_NODE_RE = /(?:剩余|流量|套餐|到期|过期|官网|网站|订阅|客服|traffic|expire|quota|reset)/i;
 
 function main(config) {
   assertPlainObject(config, "config");
@@ -96,11 +120,11 @@ function main(config) {
   }
 
   const proxies = normalizeProxies(config.proxies);
-  const proxyNames = proxies.map((p) => p.name);
+  const proxyNames = proxies.map((proxy) => proxy.name);
   assertUnique(proxyNames, "proxy node");
 
-  const candidateNames = proxyNames.filter((name) => !INFO_NODE_RE.test(name));
-  const usableNames = candidateNames.length > 0 ? candidateNames : proxyNames;
+  const candidates = proxyNames.filter((name) => !INFO_NODE_RE.test(name));
+  const usableNames = candidates.length > 0 ? candidates : proxyNames;
 
   const originalGroups = Array.isArray(config["proxy-groups"])
     ? config["proxy-groups"].filter(isPlainObject)
@@ -112,8 +136,8 @@ function main(config) {
     new Set(proxyNames),
   );
 
-  const regionalGroups = buildRegionalGroups(usableNames);
-  const generatedGroups = buildGeneratedGroups(usableNames, regionalGroups);
+  const regionGroups = buildRegionGroups(usableNames);
+  const generatedGroups = buildGeneratedGroups(regionGroups);
 
   validateGeneratedNames({
     proxyNames,
@@ -130,113 +154,34 @@ function main(config) {
 
   validateDialerProxyReferences(proxies, fixed["proxy-groups"], proxyNames);
   validateGroupReferences(fixed["proxy-groups"], proxyNames, config["proxy-providers"]);
-  validateRuleTargets(fixed.rules, fixed["proxy-groups"]);
+  validateRules(fixed.rules, fixed["proxy-groups"], fixed["rule-providers"]);
 
   return fixed;
 }
 
-function buildRegionalGroups(proxyNames) {
-  const groups = [];
+function buildRegionGroups(proxyNames) {
+  const buckets = Object.fromEntries(REGION_ORDER.map((name) => [name, []]));
 
-  for (const region of REGIONS) {
-    const matched = proxyNames.filter((name) => region.re.test(name));
-    if (matched.length === 0) continue;
-
-    const name = regionGroupName(region);
-    if (matched.length === 1) {
-      groups.push({
-        name,
-        type: "select",
-        proxies: matched,
-      });
-      continue;
-    }
-
-    groups.push({
-      name,
-      type: "url-test",
-      proxies: matched,
-      url: SETTINGS.testUrl,
-      interval: SETTINGS.testInterval,
-      timeout: SETTINGS.testTimeout,
-      tolerance: SETTINGS.testTolerance,
-      lazy: true,
-    });
+  for (const proxyName of proxyNames) {
+    const matched = REGIONS.find((region) => region.re.test(proxyName));
+    buckets[matched ? matched.id : "Other"].push(proxyName);
   }
 
-  return groups;
+  return REGION_ORDER.flatMap((name) => {
+    const members = buckets[name];
+    if (members.length === 0) return [];
+    return [makeRegionGroup(name, members)];
+  });
 }
 
-function buildGeneratedGroups(proxyNames, regionalGroups) {
-  const regionalNames = regionalGroups.map((group) => group.name);
-
-  const allNodes = {
-    name: GROUP.allNodes,
-    type: "select",
-    proxies: proxyNames,
-  };
-
-  const globalAuto = makeAutoGroup(GROUP.globalAuto, proxyNames);
-
-  const globalFallbackCandidates =
-    regionalNames.length >= 2 ? regionalNames : proxyNames;
-  const globalFallback = makeFallbackGroup(
-    GROUP.globalFallback,
-    globalFallbackCandidates,
-  );
-
-  const apnsCandidates = regionalNames.length >= 2 ? regionalNames : proxyNames;
-  const apnsFallback = makeFallbackGroup(GROUP.apnsFallback, apnsCandidates);
-
-  const gateCandidates = dedupe([
-    GROUP.globalAuto,
-    GROUP.globalFallback,
-    ...regionalNames,
-    GROUP.allNodes,
-    "DIRECT",
-  ]);
-
-  const gate = {
-    name: GROUP.gate,
-    type: "select",
-    proxies: gateCandidates,
-  };
-
-  const serviceCandidates = dedupe([
-    GROUP.gate,
-    GROUP.globalFallback,
-    ...regionalNames,
-    GROUP.allNodes,
-    "DIRECT",
-  ]);
-
-  const services = SERVICES.map((name) => ({
-    name,
-    type: "select",
-    proxies: serviceCandidates,
-  }));
-
-  const applePush = {
-    name: GROUP.applePush,
-    type: "select",
-    proxies: [GROUP.apnsFallback, "DIRECT", GROUP.gate],
-  };
-
-  return [
-    allNodes,
-    globalAuto,
-    globalFallback,
-    ...regionalGroups,
-    apnsFallback,
-    gate,
-    applePush,
-    ...services,
-  ];
-}
-
-function makeAutoGroup(name, proxies) {
+function makeRegionGroup(name, proxies) {
   if (proxies.length === 1) {
-    return { name, type: "select", proxies: [...proxies] };
+    return {
+      name,
+      type: "select",
+      proxies: [...proxies],
+      icon: icon(name),
+    };
   }
 
   return {
@@ -248,12 +193,66 @@ function makeAutoGroup(name, proxies) {
     timeout: SETTINGS.testTimeout,
     tolerance: SETTINGS.testTolerance,
     lazy: true,
+    icon: icon(name),
   };
+}
+
+function buildGeneratedGroups(regionGroups) {
+  const availableRegions = regionGroups.map((group) => group.name);
+  const availableSet = new Set(availableRegions);
+
+  const proxyGroup = {
+    name: GROUP.proxy,
+    type: "select",
+    proxies: filterTargets(["US", "JP", "SG", "CN", "Other", "DIRECT"], availableSet),
+    icon: icon(GROUP.proxy),
+  };
+
+  const finalGroup = {
+    name: GROUP.final,
+    type: "select",
+    proxies: filterTargets([GROUP.proxy, "DIRECT", "CN", "US", "JP", "SG", "Other"], availableSet),
+    icon: icon(GROUP.final),
+  };
+
+  const apnsTargets = filterTargets(["JP", "SG", "US"], availableSet);
+  const apnsFallback = makeFallbackGroup(
+    GROUP.apnsFallback,
+    apnsTargets.length > 0 ? apnsTargets : [GROUP.proxy],
+  );
+
+  const applePush = {
+    name: GROUP.applePush,
+    type: "select",
+    proxies: ["DIRECT", GROUP.apnsFallback, GROUP.proxy],
+    icon: icon(GROUP.applePush),
+  };
+
+  const services = SERVICE_DEFS.map((service) => ({
+    name: service.name,
+    type: "select",
+    proxies: filterTargets(service.targets, availableSet),
+    icon: icon(service.name),
+  }));
+
+  return [
+    proxyGroup,
+    finalGroup,
+    ...regionGroups,
+    apnsFallback,
+    applePush,
+    ...services,
+  ];
 }
 
 function makeFallbackGroup(name, proxies) {
   if (proxies.length === 1) {
-    return { name, type: "select", proxies: [...proxies] };
+    return {
+      name,
+      type: "select",
+      proxies: [...proxies],
+      icon: icon(name),
+    };
   }
 
   return {
@@ -264,6 +263,7 @@ function makeFallbackGroup(name, proxies) {
     interval: SETTINGS.testInterval,
     timeout: SETTINGS.testTimeout,
     lazy: true,
+    icon: icon(name),
   };
 }
 
@@ -284,26 +284,41 @@ function buildRuleProviders() {
     url: `${RULE_BASE}/geo/geoip/${file}.mrs`,
   });
 
+  const classical = (url) => ({
+    type: "http",
+    behavior: "classical",
+    format: "yaml",
+    interval: SETTINGS.ruleInterval,
+    url,
+  });
+
   return {
     RS_PrivateDomain: domain("private"),
     RS_PrivateIP: ip("private"),
-    RS_AI: domain("category-ai-!cn"),
-    RS_GitHub: domain("github"),
-    RS_YouTube: domain("youtube"),
+    RS_Apple: domain("apple"),
     RS_Google: domain("google"),
-    RS_GoogleIP: ip("google"),
+    RS_Microsoft: domain("microsoft"),
+    RS_OpenAI: domain("openai"),
+    RS_Anthropic: domain("anthropic"),
+    RS_GitHub: domain("github"),
     RS_Telegram: domain("telegram"),
     RS_TelegramIP: ip("telegram"),
+    RS_X: domain("twitter"),
+    RS_Cloudflare: domain("cloudflare"),
+    RS_Amazon: domain("amazon"),
+    RS_TikTok: domain("tiktok"),
+    RS_Disney: domain("disney"),
+    RS_Spotify: domain("spotify"),
+    RS_Meta: domain("meta"),
+    RS_Emby: classical(`${REPO_RAW}/rules/emby.yaml`),
+    RS_YouTube: domain("youtube"),
     RS_Netflix: domain("netflix"),
     RS_NetflixIP: ip("netflix"),
-    RS_Spotify: domain("spotify"),
-    RS_Microsoft: domain("microsoft"),
-    RS_Apple: domain("apple"),
-    RS_iCloud: domain("icloud"),
-    RS_Amazon: domain("amazon"),
-    RS_Pixiv: domain("pixiv"),
-    RS_LinkedIn: domain("linkedin"),
-    RS_GeolocationNonCN: domain("geolocation-!cn"),
+    RS_HBO: domain("hbo"),
+    RS_PrimeVideo: domain("primevideo"),
+    RS_Bahamut: domain("bahamut"),
+    RS_Bilibili: domain("bilibili"),
+    RS_Steam: domain("steam"),
     RS_CNDomain: domain("cn"),
     RS_CNIP: ip("cn"),
   };
@@ -321,28 +336,58 @@ function buildRules() {
     "DOMAIN-SUFFIX,local,DIRECT",
     "RULE-SET,RS_PrivateDomain,DIRECT",
     "RULE-SET,RS_PrivateIP,DIRECT,no-resolve",
-    "DOMAIN-SUFFIX,push.apple.com,🍎 Apple-Push",
-    "RULE-SET,RS_YouTube,📺 YouTube",
-    "RULE-SET,RS_AI,🤖 AI",
-    "RULE-SET,RS_GitHub,💻 GitHub",
-    "RULE-SET,RS_Telegram,✈️ Telegram",
-    "RULE-SET,RS_TelegramIP,✈️ Telegram,no-resolve",
-    "RULE-SET,RS_Netflix,🎬 Netflix",
-    "RULE-SET,RS_NetflixIP,🎬 Netflix,no-resolve",
-    "RULE-SET,RS_Spotify,🎵 Spotify",
-    "RULE-SET,RS_Amazon,📦 Amazon",
-    "RULE-SET,RS_Pixiv,🎨 Pixiv",
-    "RULE-SET,RS_LinkedIn,💼 LinkedIn",
-    "RULE-SET,RS_iCloud,🍎 Apple",
-    "RULE-SET,RS_Apple,🍎 Apple",
-    "RULE-SET,RS_Microsoft,🪟 Microsoft",
-    "RULE-SET,RS_Google,🔎 Google",
-    "RULE-SET,RS_GoogleIP,🔎 Google,no-resolve",
-    "RULE-SET,RS_GeolocationNonCN,🧭 PROXY-Gate",
+
+    "DOMAIN-SUFFIX,push.apple.com,Apple Push",
+
+    "RULE-SET,RS_OpenAI,OpenAI",
+    "RULE-SET,RS_Anthropic,Anthropic",
+
+    "RULE-SET,RS_YouTube,YouTube",
+    "RULE-SET,RS_Google,Google",
+
+    "RULE-SET,RS_GitHub,GitHub",
+    "RULE-SET,RS_Telegram,Telegram",
+    "RULE-SET,RS_TelegramIP,Telegram,no-resolve",
+    "RULE-SET,RS_X,X",
+    "RULE-SET,RS_Cloudflare,Cloudflare",
+
+    "RULE-SET,RS_Netflix,Netflix",
+    "RULE-SET,RS_NetflixIP,Netflix,no-resolve",
+    "RULE-SET,RS_Disney,Disney+",
+    "RULE-SET,RS_HBO,HBO",
+    "RULE-SET,RS_PrimeVideo,PrimeVideo",
+    "RULE-SET,RS_Spotify,Spotify",
+    "RULE-SET,RS_Emby,Emby",
+    "RULE-SET,RS_Bahamut,Bahamut",
+
+    "RULE-SET,RS_Amazon,Amazon",
+    "RULE-SET,RS_TikTok,TikTok",
+    "RULE-SET,RS_Meta,Meta",
+    "RULE-SET,RS_Steam,Steam",
+
+    "RULE-SET,RS_Apple,Apple",
+    "RULE-SET,RS_Microsoft,Microsoft",
+
+    "RULE-SET,RS_Bilibili,Bilibili",
+
     "RULE-SET,RS_CNDomain,DIRECT",
     "RULE-SET,RS_CNIP,DIRECT,no-resolve",
-    "MATCH,🧭 PROXY-Gate",
+
+    `MATCH,${GROUP.final}`,
   ];
+}
+
+function filterTargets(targets, availableRegions) {
+  return dedupe(targets.filter((target) => {
+    if (REGION_ORDER.includes(target)) return availableRegions.has(target);
+    return true;
+  }));
+}
+
+function icon(name) {
+  const file = ICONS[name];
+  if (!file) throw new Error(`No icon configured for proxy-group: ${name}`);
+  return `${ICON_BASE}/${file}`;
 }
 
 function collectDialerProxyDependencies(proxies, originalGroups, proxyNameSet) {
@@ -361,9 +406,7 @@ function collectDialerProxyDependencies(proxies, originalGroups, proxyNameSet) {
 
   for (const proxy of proxies) {
     const ref = proxy["dialer-proxy"];
-    if (typeof ref === "string" && ref && groupMap.has(ref)) {
-      queue.push(ref);
-    }
+    if (typeof ref === "string" && ref && groupMap.has(ref)) queue.push(ref);
   }
 
   while (queue.length > 0) {
@@ -398,8 +441,8 @@ function validateGeneratedNames({
 }) {
   const proxySet = new Set(proxyNames);
   const providerSet = new Set(providerNames);
-  const preservedSet = new Set(preservedGroups.map((g) => g.name));
-  const generatedNames = generatedGroups.map((g) => g.name);
+  const preservedSet = new Set(preservedGroups.map((group) => group.name));
+  const generatedNames = generatedGroups.map((group) => group.name);
 
   assertUnique(generatedNames, "generated proxy-group");
 
@@ -419,7 +462,7 @@ function validateGeneratedNames({
 function validateDialerProxyReferences(proxies, groups, proxyNames) {
   const valid = new Set([
     ...proxyNames,
-    ...groups.map((g) => g.name),
+    ...groups.map((group) => group.name),
     ...BUILTIN_OUTBOUNDS,
   ]);
 
@@ -463,22 +506,31 @@ function validateGroupReferences(groups, proxyNames, proxyProviders) {
   }
 }
 
-function validateRuleTargets(rules, groups) {
+function validateRules(rules, groups, ruleProviders) {
   const validTargets = new Set([
-    ...groups.map((g) => g.name),
+    ...groups.map((group) => group.name),
     ...BUILTIN_OUTBOUNDS,
   ]);
+  const validProviders = new Set(Object.keys(ruleProviders));
 
   for (const rule of rules) {
     if (typeof rule !== "string") continue;
     const parts = rule.split(",");
     if (parts.length < 2) continue;
 
-    let target;
-    if (parts[0] === "MATCH") target = parts[1];
-    else if (parts[0] === "RULE-SET") target = parts[2];
-    else target = parts[2];
+    if (parts[0] === "RULE-SET") {
+      const provider = parts[1];
+      const target = parts[2];
+      if (!validProviders.has(provider)) {
+        throw new Error(`Rule references missing rule-provider: ${rule}`);
+      }
+      if (!validTargets.has(target)) {
+        throw new Error(`Rule references missing target: ${rule}`);
+      }
+      continue;
+    }
 
+    const target = parts[0] === "MATCH" ? parts[1] : parts[2];
     if (target && !validTargets.has(target)) {
       throw new Error(`Rule references missing target: ${rule}`);
     }
@@ -497,10 +549,6 @@ function normalizeProxies(value) {
     }
     return proxy;
   });
-}
-
-function regionGroupName(region) {
-  return `${region.flag} ${region.id}-Auto`;
 }
 
 function assertUnique(values, label) {
@@ -532,7 +580,11 @@ if (typeof module !== "undefined" && module.exports) {
     main,
     buildRuleProviders,
     buildRules,
-    REGIONS,
+    buildRegionGroups,
     GROUP,
+    REGIONS,
+    REGION_ORDER,
+    SERVICE_DEFS,
+    ICONS,
   };
 }
