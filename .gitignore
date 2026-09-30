@@ -1,0 +1,12 @@
+.DS_Store
+Thumbs.db
+node_modules/
+*.log
+.env
+.env.*
+!.env.example
+
+# Never commit local/private Clash or Hako profiles.
+private/
+secrets/
+subscriptions/
