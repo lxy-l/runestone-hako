@@ -121,7 +121,7 @@ function ruleIndex(prefix) {
   const output = main({ proxies: [proxy("US-01"), proxy("JP-01"), proxy("SG-01"), proxy("CN-01"), proxy("DE-01")] });
   for (const group of output["proxy-groups"]) {
     if (!ICONS[group.name]) continue;
-    assert.match(group.icon, /^https:\/\/cdn\.jsdelivr\.net\/gh\/lxy-l\/runestone-hako@main\/assets\/icons\/.+\.svg$/);
+    assert.match(group.icon, /^https:\/\/cdn\.jsdelivr\.net\/gh\/lxy-l\/runestone-hako@main\/assets\/icons\/png\/.+\.png$/);
   }
 }
 
