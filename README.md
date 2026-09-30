@@ -85,7 +85,7 @@ Important ordering guarantees:
 
 ## SVG icons
 
-All visible generated groups use SVG icons served from this repository:
+All visible generated groups use SVG icons stored in this repository and delivered through jsDelivr:
 
 `assets/icons/`
 
