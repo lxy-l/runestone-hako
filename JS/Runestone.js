@@ -9,7 +9,7 @@ const SETTINGS = Object.freeze({
 });
 
 const REPO_RAW = "https://raw.githubusercontent.com/lxy-l/runestone-hako/main";
-const ICON_BASE = `${REPO_RAW}/assets/icons`;
+const ICON_BASE = "https://cdn.jsdelivr.net/gh/lxy-l/runestone-hako@main/assets/icons";
 const RULE_BASE = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta";
 
 const GROUP = Object.freeze({
