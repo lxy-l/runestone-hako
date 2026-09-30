@@ -1,0 +1,35 @@
+name: icons
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "assets/icons/*.svg"
+      - "scripts/generate-icons.sh"
+      - ".github/workflows/icons.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SVG converter
+        run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
+      - name: Generate PNG icons
+        run: bash scripts/generate-icons.sh
+      - name: Commit generated icons
+        run: |
+          if git diff --quiet -- assets/icons/png; then
+            echo "PNG icons are already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/icons/png
+          git commit -m "chore: regenerate 144x144 PNG icons"
+          git push
