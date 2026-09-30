@@ -1,0 +1,61 @@
+# Minimal standalone Mihomo example.
+#
+# This file is intentionally small. It is NOT required when Runestone.js is
+# used as a Hako post-merge script; Hako should supply the real proxies.
+# Never commit a real subscription URL or credential to a public repository.
+
+mode: rule
+log-level: warning
+ipv6: true
+unified-delay: true
+tcp-concurrent: true
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  use-hosts: true
+  fake-ip-filter:
+    - "+.lan"
+    - "+.local"
+
+proxy-providers:
+  provider-a:
+    type: http
+    url: "https://example.com/replace-with-your-private-profile"
+    path: ./providers/provider-a.yaml
+    interval: 21600
+    health-check:
+      enable: true
+      url: "https://www.gstatic.com/generate_204"
+      interval: 600
+      lazy: true
+
+proxy-groups:
+  - name: PROXY
+    type: select
+    proxies:
+      - AUTO
+      - DIRECT
+    use:
+      - provider-a
+
+  - name: AUTO
+    type: url-test
+    use:
+      - provider-a
+    url: "https://www.gstatic.com/generate_204"
+    interval: 300
+    tolerance: 50
+
+rules:
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+  - IP-CIDR6,fc00::/7,DIRECT,no-resolve
+  - MATCH,PROXY
