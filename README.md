@@ -83,11 +83,11 @@ Important ordering guarantees:
 - Bilibili before CN direct rules
 - `MATCH,Final`
 
-## SVG icons
+## Icons
 
-All visible generated groups use SVG icons stored in this repository and delivered through jsDelivr:
+All visible generated groups use 144×144 transparent PNG icons generated from the SVG source files in this repository and delivered through jsDelivr:
 
-`assets/icons/`
+`assets/icons/png/`
 
 Notable functional icons:
 
@@ -97,7 +97,7 @@ Notable functional icons:
 - APNs-Fallback: Lucide `refresh-cw.svg`
 - Other: Lucide `globe.svg`
 
-Region flags use flag-icons. Brand SVGs primarily come from Dashboard Icons, with Anthropic from Simple Icons and Bahamut from the approved SVG source. See `assets/icons/README.md`.
+Region flags use flag-icons. Brand SVGs primarily come from Dashboard Icons, with Anthropic from Simple Icons and Bahamut from the approved SVG source. SVG source files remain in `assets/icons/`; PNG files are generated into `assets/icons/png/`. See `assets/icons/README.md`.
 
 ## Hako usage
 
