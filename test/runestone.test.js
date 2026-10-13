@@ -1,6 +1,8 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const packageJson = require("../package.json");
 const {
   main,
   buildRules,
@@ -9,6 +11,15 @@ const {
   ICONS,
   SERVICE_DEFS,
 } = require("../JS/Runestone.js");
+
+const runestoneSource = fs.readFileSync(require.resolve("../JS/Runestone.js"), "utf8");
+const readme = fs.readFileSync(require.resolve("../README.md"), "utf8");
+
+assert.equal(
+  runestoneSource.split(/\r?\n/, 1)[0],
+  `// Version: ${packageJson.version}`,
+);
+assert(readme.includes(`runestone-hako@v${packageJson.version}/JS/Runestone.js`));
 
 function proxy(name, extra = {}) {
   return { name, type: "ss", server: "127.0.0.1", port: 443, ...extra };
@@ -115,6 +126,9 @@ function ruleIndex(prefix) {
   assert(providers.RS_Anthropic);
   assert(!providers.RS_AI);
   assert.equal(providers.RS_Emby.behavior, "classical");
+  for (const provider of Object.values(providers)) {
+    assert.match(provider.url, /^https:\/\/cdn\.jsdelivr\.net\/gh\//);
+  }
 }
 
 {

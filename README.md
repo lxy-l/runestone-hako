@@ -104,13 +104,13 @@ Region flags use flag-icons. Brand SVGs primarily come from Dashboard Icons, wit
 Use the post-merge script:
 
 ```text
-https://raw.githubusercontent.com/lxy-l/runestone-hako/main/JS/Runestone.js
+https://cdn.jsdelivr.net/gh/lxy-l/runestone-hako@main/JS/Runestone.js
 ```
 
 For a stable release, pin the tag instead of `main`, for example:
 
 ```text
-https://raw.githubusercontent.com/lxy-l/runestone-hako/v2.0.0/JS/Runestone.js
+https://cdn.jsdelivr.net/gh/lxy-l/runestone-hako@v2.0.0/JS/Runestone.js
 ```
 
 ## Security
