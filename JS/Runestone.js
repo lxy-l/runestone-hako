@@ -9,9 +9,9 @@ const SETTINGS = Object.freeze({
   ruleInterval: 86400,
 });
 
-const REPO_CDN = "https://cdn.jsdelivr.net/gh/lxy-l/runestone-hako@main";
-const ICON_BASE = `${REPO_CDN}/assets/icons/png`;
-const RULE_CDN = "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta";
+const REPO_BASE = "https://raw.githubusercontent.com/lxy-l/runestone-hako/main";
+const ICON_BASE = `${REPO_BASE}/assets/icons/png`;
+const RULE_BASE = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta";
 
 const GROUP = Object.freeze({
   proxy: "Proxy",
@@ -276,7 +276,7 @@ function buildRuleProviders() {
     behavior: "domain",
     format: "mrs",
     interval: SETTINGS.ruleInterval,
-    url: `${RULE_CDN}/geo/geosite/${file}.mrs`,
+    url: `${RULE_BASE}/geo/geosite/${file}.mrs`,
   });
 
   const ip = (file) => ({
@@ -284,7 +284,7 @@ function buildRuleProviders() {
     behavior: "ipcidr",
     format: "mrs",
     interval: SETTINGS.ruleInterval,
-    url: `${RULE_CDN}/geo/geoip/${file}.mrs`,
+    url: `${RULE_BASE}/geo/geoip/${file}.mrs`,
   });
 
   const classical = (url) => ({
@@ -313,7 +313,7 @@ function buildRuleProviders() {
     RS_Disney: domain("disney"),
     RS_Spotify: domain("spotify"),
     RS_Meta: domain("meta"),
-    RS_Emby: classical(`${REPO_CDN}/rules/emby.yaml`),
+    RS_Emby: classical(`${REPO_BASE}/rules/emby.yaml`),
     RS_YouTube: domain("youtube"),
     RS_Netflix: domain("netflix"),
     RS_NetflixIP: ip("netflix"),

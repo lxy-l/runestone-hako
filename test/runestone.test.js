@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const vm = require("node:vm");
 const packageJson = require("../package.json");
 const {
   main,
@@ -13,13 +14,18 @@ const {
 } = require("../JS/Runestone.js");
 
 const runestoneSource = fs.readFileSync(require.resolve("../JS/Runestone.js"), "utf8");
+const clashVergeSource = fs.readFileSync(require.resolve("../JS/Runestone.ClashVerge.js"), "utf8");
 const readme = fs.readFileSync(require.resolve("../README.md"), "utf8");
+const clashVergeContext = {};
+vm.createContext(clashVergeContext);
+vm.runInContext(`${clashVergeSource}\nthis.clashVergeMain = main;`, clashVergeContext);
+const clashVergeMain = clashVergeContext.clashVergeMain;
 
 assert.equal(
   runestoneSource.split(/\r?\n/, 1)[0],
   `// Version: ${packageJson.version}`,
 );
-assert(readme.includes(`runestone-hako@v${packageJson.version}/JS/Runestone.js`));
+assert(readme.includes(`raw.githubusercontent.com/lxy-l/runestone-hako/v${packageJson.version}/JS/Runestone.js`));
 
 function proxy(name, extra = {}) {
   return { name, type: "ss", server: "127.0.0.1", port: 443, ...extra };
@@ -126,8 +132,10 @@ function ruleIndex(prefix) {
   assert(providers.RS_Anthropic);
   assert(!providers.RS_AI);
   assert.equal(providers.RS_Emby.behavior, "classical");
-  for (const provider of Object.values(providers)) {
-    assert.match(provider.url, /^https:\/\/cdn\.jsdelivr\.net\/gh\//);
+  assert.match(providers.RS_Emby.url, /^https:\/\/raw\.githubusercontent\.com\/lxy-l\/runestone-hako\/main\/rules\/emby\.yaml$/);
+  for (const [name, provider] of Object.entries(providers)) {
+    if (name === "RS_Emby") continue;
+    assert.match(provider.url, /^https:\/\/raw\.githubusercontent\.com\/MetaCubeX\/meta-rules-dat\/meta\//);
   }
 }
 
@@ -135,8 +143,26 @@ function ruleIndex(prefix) {
   const output = main({ proxies: [proxy("US-01"), proxy("JP-01"), proxy("SG-01"), proxy("CN-01"), proxy("DE-01")] });
   for (const group of output["proxy-groups"]) {
     if (!ICONS[group.name]) continue;
-    assert.match(group.icon, /^https:\/\/cdn\.jsdelivr\.net\/gh\/lxy-l\/runestone-hako@main\/assets\/icons\/png\/.+\.png$/);
+    assert.match(group.icon, /^https:\/\/raw\.githubusercontent\.com\/lxy-l\/runestone-hako\/main\/assets\/icons\/png\/.+\.png$/);
   }
+}
+
+{
+  const output = clashVergeMain({
+    "proxy-providers": { provider1: { type: "http", url: "https://example.invalid/sub" } },
+    "proxy-groups": [{ name: "Existing provider group", type: "select", use: ["provider1"] }],
+  });
+  for (const name of ["CN", "US", "JP", "SG", "Other"]) {
+    const group = groupByName(output, name);
+    assert.equal(group.type, "select");
+    assert.deepEqual(Array.from(group.use), ["provider1"]);
+    assert(group.filter);
+    assert(group["exclude-filter"]);
+    assert.match(group.icon, /^https:\/\/raw\.githubusercontent\.com\/lxy-l\/runestone-hako\/main\/assets\/icons\/png\//);
+  }
+  assert(groupByName(output, "HBO"));
+  assert(groupByName(output, "Bahamut"));
+  assert.equal(output.rules.at(-1), "MATCH,Final");
 }
 
 {

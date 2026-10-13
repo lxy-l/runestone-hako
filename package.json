@@ -5,7 +5,7 @@
   "description": "Routing-only Hako/Mihomo post-merge configuration",
   "scripts": {
     "test": "node test/runestone.test.js",
-    "check": "node --check JS/Runestone.js && node --check test/runestone.test.js",
+    "check": "node --check JS/Runestone.js && node --check JS/Runestone.ClashVerge.js && node --check test/runestone.test.js",
     "icons": "bash scripts/generate-icons.sh"
   },
   "engines": {

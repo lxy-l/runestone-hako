@@ -85,7 +85,7 @@ Important ordering guarantees:
 
 ## Icons
 
-All visible generated groups use 144×144 transparent PNG icons generated proportionally from the SVG source files in this repository and delivered through jsDelivr:
+All visible generated groups use 144×144 transparent PNG icons generated proportionally from the SVG source files in this repository and delivered through GitHub raw:
 
 `assets/icons/png/`
 
@@ -104,13 +104,23 @@ Region flags use flag-icons. Brand SVGs primarily come from Dashboard Icons, wit
 Use the post-merge script:
 
 ```text
-https://cdn.jsdelivr.net/gh/lxy-l/runestone-hako@main/JS/Runestone.js
+https://raw.githubusercontent.com/lxy-l/runestone-hako/main/JS/Runestone.js
 ```
+
+## Clash Verge Rev usage
+
+Use the Clash Verge Rev compatible script in the target subscription's **Extended Script**:
+
+```text
+https://raw.githubusercontent.com/lxy-l/runestone-hako/main/JS/Runestone.ClashVerge.js
+```
+
+It provides the same groups, rules, rule-providers, icons and reference checks as `JS/Runestone.js`. It supports both inline `proxies` and subscription nodes supplied through `proxy-providers`. For provider-based subscriptions, regional groups use Mihomo provider filters, so they appear as selectable groups even though JavaScript cannot inspect the provider's remote node list while the script runs.
 
 For a stable release, pin the tag instead of `main`, for example:
 
 ```text
-https://cdn.jsdelivr.net/gh/lxy-l/runestone-hako@v2.0.0/JS/Runestone.js
+https://raw.githubusercontent.com/lxy-l/runestone-hako/v2.0.0/JS/Runestone.js
 ```
 
 ## Security
