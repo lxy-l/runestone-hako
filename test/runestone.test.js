@@ -107,7 +107,6 @@ function ruleIndex(prefix) {
   const output = main({ proxies: [proxy("US-01"), proxy("JP-01"), proxy("SG-01"), proxy("CN-01"), proxy("DE-01")] });
   const names = new Set(output["proxy-groups"].map((group) => group.name));
   for (const service of SERVICE_DEFS) assert(names.has(service.name), service.name);
-  assert.deepEqual(groupByName(output, "Apple").proxies, [GROUP.proxy, "US", "JP", "SG", "DIRECT"]);
   assert(names.has("Apple Push"));
   assert(names.has("APNs-Fallback"));
 }

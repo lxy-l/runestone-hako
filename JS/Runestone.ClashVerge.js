@@ -77,7 +77,7 @@ const ICONS = Object.freeze({
 });
 
 const SERVICE_DEFS = Object.freeze([
-  { name: "Apple", targets: [GROUP.proxy, "US", "JP", "SG", "DIRECT"] },
+  { name: "Apple", targets: ["DIRECT", GROUP.proxy, "US", "JP", "SG"] },
   { name: "Google", targets: [GROUP.proxy, "US", "JP", "SG", "DIRECT"] },
   { name: "Microsoft", targets: ["DIRECT", GROUP.proxy, "US", "JP"] },
   { name: "OpenAI", targets: ["US", "JP", "SG", GROUP.proxy] },
