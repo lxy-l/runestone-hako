@@ -6,6 +6,8 @@ node_modules/
 .env.*
 !.env.example
 
+.serena/
+
 # Never commit local/private Clash or Hako profiles.
 private/
 secrets/
