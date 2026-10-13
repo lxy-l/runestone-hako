@@ -85,7 +85,7 @@ Important ordering guarantees:
 
 ## Icons
 
-All visible generated groups use 144×144 transparent PNG icons generated from the SVG source files in this repository and delivered through jsDelivr:
+All visible generated groups use 144×144 transparent PNG icons generated proportionally from the SVG source files in this repository and delivered through jsDelivr:
 
 `assets/icons/png/`
 

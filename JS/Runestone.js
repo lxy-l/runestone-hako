@@ -175,25 +175,27 @@ function buildRegionGroups(proxyNames) {
 }
 
 function makeRegionGroup(name, proxies) {
+  const group = {
+    name,
+    proxies: [...proxies],
+    icon: icon(name),
+  };
+
   if (proxies.length === 1) {
     return {
-      name,
+      ...group,
       type: "select",
-      proxies: [...proxies],
-      icon: icon(name),
     };
   }
 
   return {
-    name,
+    ...group,
     type: "url-test",
-    proxies: [...proxies],
     url: SETTINGS.testUrl,
     interval: SETTINGS.testInterval,
     timeout: SETTINGS.testTimeout,
     tolerance: SETTINGS.testTolerance,
     lazy: true,
-    icon: icon(name),
   };
 }
 

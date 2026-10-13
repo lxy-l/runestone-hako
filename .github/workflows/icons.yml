@@ -6,6 +6,7 @@ on:
     paths:
       - "assets/icons/*.svg"
       - "scripts/generate-icons.sh"
+      - "scripts/square-svg.py"
       - ".github/workflows/icons.yml"
   workflow_dispatch:
 

@@ -1,6 +1,6 @@
 # Icon sources and Hako PNG assets
 
-SVG files are the source artwork. GitHub Actions generates 144×144 transparent PNG files under `assets/icons/png/` for Hako compatibility.
+SVG files are the source artwork. GitHub Actions generates 144×144 transparent PNG files under `assets/icons/png/` for Hako compatibility. Artwork is scaled proportionally and centered on the square canvas.
 
 | Files | Source |
 |---|---|

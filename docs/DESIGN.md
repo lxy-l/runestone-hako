@@ -124,6 +124,8 @@ Functional icons use Lucide:
 
 Region flags use flag-icons. Brand icons are self-hosted copies from the
 approved upstream SVG sources documented in `assets/icons/README.md`.
+PNG generation keeps a square 144×144 canvas and scales artwork
+proportionally within it.
 
 ## Preserving dialer-proxy dependencies
 
