@@ -1,4 +1,4 @@
-// Version: 2.0.0-cvr.3
+// Version: 2.0.1-cvr.4
 // Clash Verge Rev Extended Script; supports inline proxies and proxy-providers.
 "use strict";
 
@@ -163,7 +163,7 @@ function main(config) {
 
   fixed["proxy-groups"] = [...preservedGroups, ...generatedGroups];
   fixed["rule-providers"] = buildRuleProviders();
-  fixed.rules = buildRules();
+  fixed.rules = preserveCustomDirectRules(config.rules, buildRules());
 
   validateDialerProxyReferences(proxies, fixed["proxy-groups"], proxyNames);
   validateGroupReferences(fixed["proxy-groups"], proxyNames, proxyProviders);
@@ -425,6 +425,28 @@ function buildRules() {
 
     `MATCH,${GROUP.final}`,
   ];
+}
+
+function preserveCustomDirectRules(existingRules, generatedRules) {
+  const supportedTypes = new Set([
+    "DOMAIN",
+    "DOMAIN-SUFFIX",
+    "DOMAIN-KEYWORD",
+    "DOMAIN-REGEX",
+    "IP-CIDR",
+    "IP-CIDR6",
+    "GEOIP",
+  ]);
+  const generatedSet = new Set(generatedRules);
+  const customDirectRules = Array.isArray(existingRules)
+    ? existingRules.filter((rule) => {
+      if (typeof rule !== "string") return false;
+      const parts = rule.split(",").map((part) => part.trim());
+      return supportedTypes.has(parts[0]) && parts[2] === "DIRECT" && !generatedSet.has(rule);
+    })
+    : [];
+
+  return [...customDirectRules, ...generatedRules];
 }
 
 function filterTargets(targets, availableRegions) {
