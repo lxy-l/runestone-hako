@@ -1,0 +1,57 @@
+name: sync-version
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-version-main
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Update version from latest source commit
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            version_source="$(git log origin/main -1 --format='%H %cI' \
+              --invert-grep --grep='^chore: sync timestamp version$')"
+            export VERSION_REF="${version_source%% *}"
+            export VERSION_TIMESTAMP="${version_source#* }"
+            node scripts/update-version.mjs
+            git add -- package.json JS/Runestone.js JS/Runestone.ClashVerge.js README.md
+
+            if git diff --cached --quiet; then
+              echo "Version metadata is already current."
+              exit 0
+            fi
+
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: sync timestamp version"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+
+            sleep "$((attempt * 2))"
+          done
+
+          echo "Could not push the version update after three attempts." >&2
+          exit 1

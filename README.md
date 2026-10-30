@@ -123,10 +123,10 @@ https://raw.githubusercontent.com/lxy-l/runestone-hako/main/JS/Runestone.ClashVe
 
 It provides the same groups, rules, rule-providers, icons and reference checks as `JS/Runestone.js`. It supports both inline `proxies` and subscription nodes supplied through `proxy-providers`. For provider-based subscriptions, regional groups use Mihomo provider filters, so they appear as selectable groups even though JavaScript cannot inspect the provider's remote node list while the script runs.
 
-For a stable release, pin the tag instead of `main`, for example:
+For an immutable pin, use a commit SHA instead of `main`, for example:
 
 ```text
-https://raw.githubusercontent.com/lxy-l/runestone-hako/v20261030.101503597.0/JS/Runestone.js
+https://raw.githubusercontent.com/lxy-l/runestone-hako/32648bbc821d9fa19dfb2c21a2806a9204160eca/JS/Runestone.js
 ```
 
 ## Security
@@ -142,12 +142,11 @@ npm run check
 
 ## Version
 
-The pre-commit hook updates the version to an Asia/Shanghai timestamp in
-`YYYYMMDD.HHmmssSSS.0` format and synchronizes `package.json`, both script
-headers, and the pinned README URL. Enable the hook once per checkout with
-`git config core.hooksPath .githooks`. Run `npm run version:auto` to update it
-manually; on Windows without Node installed, run
-`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/update-version.ps1`.
+The `sync-version` GitHub Actions workflow updates the version after pushes to
+`main`, using the latest source commit time converted to Asia/Shanghai. It
+synchronizes `package.json`, both script headers, and the README's immutable
+commit URL, then creates a bot commit. Run `npm run version:auto` to update it
+manually using the current time and current commit SHA.
 
 ## References
 

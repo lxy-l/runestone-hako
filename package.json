@@ -7,7 +7,7 @@
     "test": "node test/runestone.test.js",
     "check": "node --check JS/Runestone.js && node --check JS/Runestone.ClashVerge.js && node --check test/runestone.test.js",
     "icons": "bash scripts/generate-icons.sh",
-    "version:auto": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/update-version.ps1"
+    "version:auto": "node scripts/update-version.mjs"
   },
   "engines": {
     "node": ">=18"
