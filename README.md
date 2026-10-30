@@ -121,7 +121,7 @@ It provides the same groups, rules, rule-providers, icons and reference checks a
 For a stable release, pin the tag instead of `main`, for example:
 
 ```text
-https://raw.githubusercontent.com/lxy-l/runestone-hako/v2.0.0/JS/Runestone.js
+https://raw.githubusercontent.com/lxy-l/runestone-hako/v2.0.1/JS/Runestone.js
 ```
 
 ## Security
