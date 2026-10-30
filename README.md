@@ -126,7 +126,7 @@ It provides the same groups, rules, rule-providers, icons and reference checks a
 For a stable release, pin the tag instead of `main`, for example:
 
 ```text
-https://raw.githubusercontent.com/lxy-l/runestone-hako/v2.0.1/JS/Runestone.js
+https://raw.githubusercontent.com/lxy-l/runestone-hako/v20261030.101503597.0/JS/Runestone.js
 ```
 
 ## Security
@@ -139,6 +139,15 @@ Never commit real subscription URLs, tokens, UUID credentials, private keys, con
 npm test
 npm run check
 ```
+
+## Version
+
+The pre-commit hook updates the version to an Asia/Shanghai timestamp in
+`YYYYMMDD.HHmmssSSS.0` format and synchronizes `package.json`, both script
+headers, and the pinned README URL. Enable the hook once per checkout with
+`git config core.hooksPath .githooks`. Run `npm run version:auto` to update it
+manually; on Windows without Node installed, run
+`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/update-version.ps1`.
 
 ## References
 

@@ -1,12 +1,13 @@
 {
   "name": "runestone-hako",
-  "version": "2.0.1",
+  "version": "20261030.101503597.0",
   "private": true,
   "description": "Routing-only Hako/Mihomo post-merge configuration",
   "scripts": {
     "test": "node test/runestone.test.js",
     "check": "node --check JS/Runestone.js && node --check JS/Runestone.ClashVerge.js && node --check test/runestone.test.js",
-    "icons": "bash scripts/generate-icons.sh"
+    "icons": "bash scripts/generate-icons.sh",
+    "version:auto": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/update-version.ps1"
   },
   "engines": {
     "node": ">=18"

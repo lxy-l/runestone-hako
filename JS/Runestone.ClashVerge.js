@@ -1,4 +1,4 @@
-// Version: 2.0.1-cvr.5
+// Version: 20261030.101503597.0
 // Clash Verge Rev Extended Script; supports inline proxies and proxy-providers.
 "use strict";
 
