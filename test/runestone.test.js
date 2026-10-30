@@ -98,8 +98,24 @@ function ruleIndex(prefix) {
   const output = main({
     proxies: [proxy("JP-01"), proxy("SG-01"), proxy("US-01"), proxy("CN-01"), proxy("DE-01")],
   });
-  assert.deepEqual(groupByName(output, GROUP.applePush).proxies, ["DIRECT", GROUP.apnsFallback, GROUP.proxy]);
-  assert.deepEqual(groupByName(output, GROUP.apnsFallback).proxies, ["JP", "SG", "US"]);
+  assert.deepEqual(groupByName(output, GROUP.applePush).proxies, [
+    "DIRECT",
+    GROUP.proxy,
+    GROUP.apnsFallback,
+    "CN",
+    "US",
+    "JP",
+    "SG",
+    "Other",
+  ]);
+  assert.deepEqual(groupByName(output, GROUP.apnsFallback).proxies, [
+    "CN",
+    "US",
+    "JP",
+    "SG",
+    "Other",
+    "DIRECT",
+  ]);
   assert.equal(groupByName(output, GROUP.apnsFallback).type, "fallback");
 }
 

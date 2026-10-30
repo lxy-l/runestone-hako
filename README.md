@@ -34,12 +34,17 @@ There is no separate Global-Auto, Global-Fallback, All-Nodes or PROXY-Gate group
 ```text
 Apple Push
 ├── DIRECT
+├── Proxy
 ├── APNs-Fallback
 ├── CN
-└── Proxy
+├── US
+├── JP
+├── SG
+└── Other
 ```
 
-`APNs-Fallback` prefers `JP -> SG -> US -> CN` when the `CN` region group exists and uses Mihomo `fallback`.
+Apple Push also lists each available region for direct selection. `APNs-Fallback` checks
+`CN -> US -> JP -> SG -> Other -> DIRECT` in order and uses Mihomo `fallback`.
 
 ### Services
 

@@ -218,7 +218,7 @@ function buildGeneratedGroups(regionGroups) {
     icon: icon(GROUP.final),
   };
 
-  const apnsTargets = filterTargets(["JP", "SG", "US", "CN"], availableSet);
+  const apnsTargets = filterTargets([...REGION_ORDER, "DIRECT"], availableSet);
   const apnsFallback = makeFallbackGroup(
     GROUP.apnsFallback,
     apnsTargets.length > 0 ? apnsTargets : [GROUP.proxy],
@@ -227,7 +227,10 @@ function buildGeneratedGroups(regionGroups) {
   const applePush = {
     name: GROUP.applePush,
     type: "select",
-    proxies: filterTargets(["DIRECT", GROUP.apnsFallback, "CN", GROUP.proxy], availableSet),
+    proxies: filterTargets(
+      ["DIRECT", GROUP.proxy, GROUP.apnsFallback, ...REGION_ORDER],
+      availableSet,
+    ),
     icon: icon(GROUP.applePush),
   };
 

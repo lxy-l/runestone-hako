@@ -53,14 +53,19 @@ APNs remains independently controllable:
         ↓
 Apple Push
 ├── DIRECT
+├── Proxy
 ├── APNs-Fallback
 ├── CN
-└── Proxy
+├── US
+├── JP
+├── SG
+└── Other
 ```
 
-`APNs-Fallback` prefers these regions when they exist:
+Apple Push lists each available region as a direct selection. `APNs-Fallback`
+checks the available regions in this order, then tries `DIRECT`:
 
-`JP -> SG -> US -> CN`
+`CN -> US -> JP -> SG -> Other -> DIRECT`
 
 with Mihomo `fallback` semantics. It is a backup path, not a generic
 all-node failover pool.
