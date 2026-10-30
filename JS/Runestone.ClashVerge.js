@@ -109,7 +109,7 @@ const BUILTIN_OUTBOUNDS = new Set([
   "COMPATIBLE",
 ]);
 
-const INFO_NODE_RE = /(?:剩余|流量|套餐|到期|过期|官网|网站|订阅|客服|traffic|expire|quota|reset)/i;
+const INFO_NODE_RE = /(?:剩余|流量|套餐|到期|过期|官网|网站|订阅|客服|公告|通知|客户端|最新版本|更新|弃用|无可用节点|信息|traffic|expire|quota|reset|update|deprecated|announcement)/i;
 
 function main(config) {
   assertPlainObject(config, "config");
@@ -139,7 +139,7 @@ function main(config) {
   assertUnique(proxyNames, "proxy node");
 
   const candidates = proxyNames.filter((name) => !INFO_NODE_RE.test(name));
-  const usableNames = candidates.length > 0 ? candidates : proxyNames;
+  const usableNames = candidates;
 
   const originalGroups = Array.isArray(config["proxy-groups"])
     ? config["proxy-groups"].filter(isPlainObject)
@@ -265,7 +265,7 @@ function buildGeneratedGroups(regionGroups) {
     icon: icon(GROUP.final),
   };
 
-  const apnsTargets = filterTargets(["JP", "SG", "US"], availableSet);
+  const apnsTargets = filterTargets(["JP", "SG", "US", "CN"], availableSet);
   const apnsFallback = makeFallbackGroup(
     GROUP.apnsFallback,
     apnsTargets.length > 0 ? apnsTargets : [GROUP.proxy],
@@ -274,14 +274,14 @@ function buildGeneratedGroups(regionGroups) {
   const applePush = {
     name: GROUP.applePush,
     type: "select",
-    proxies: ["DIRECT", GROUP.apnsFallback, GROUP.proxy],
+    proxies: filterTargets(["DIRECT", GROUP.apnsFallback, "CN", GROUP.proxy], availableSet),
     icon: icon(GROUP.applePush),
   };
 
   const services = SERVICE_DEFS.map((service) => ({
     name: service.name,
     type: "select",
-    proxies: filterTargets(service.targets, availableSet),
+    proxies: filterTargets([...service.targets, "CN"], availableSet),
     icon: icon(service.name),
   }));
 

@@ -54,12 +54,13 @@ APNs remains independently controllable:
 Apple Push
 ├── DIRECT
 ├── APNs-Fallback
+├── CN
 └── Proxy
 ```
 
-`APNs-Fallback` is intentionally small and uses:
+`APNs-Fallback` prefers these regions when they exist:
 
-`JP -> SG -> US`
+`JP -> SG -> US -> CN`
 
 with Mihomo `fallback` semantics. It is a backup path, not a generic
 all-node failover pool.
@@ -76,8 +77,8 @@ Other visible service groups are Microsoft, GitHub, Telegram, X, Cloudflare,
 Amazon, TikTok, Disney+, Spotify, Meta, Emby, YouTube, Netflix, HBO,
 PrimeVideo, Bahamut, Bilibili and Steam.
 
-Service groups intentionally have different target choices instead of sharing
-one oversized template.
+Service groups keep service-specific target choices and also include `CN`
+whenever the `CN` region group exists.
 
 ## Rule ordering
 
