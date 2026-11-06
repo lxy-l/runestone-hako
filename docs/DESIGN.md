@@ -130,8 +130,9 @@ Functional icons use Lucide:
 
 Region flags use flag-icons. Brand icons are self-hosted copies from the
 approved upstream SVG sources documented in `assets/icons/README.md`.
-PNG generation keeps a square 144×144 canvas and scales artwork
-proportionally within it.
+PNG generation keeps a square canvas and scales artwork proportionally within
+it. Apple AI and Microsoft icons use a 288×288 canvas at twice the default
+144×144 resolution.
 
 ## Preserving dialer-proxy dependencies
 

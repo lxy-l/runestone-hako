@@ -20,7 +20,7 @@ def number(value):
     return match.group(1)
 
 
-def square_svg(source, destination):
+def square_svg(source, destination, size=144):
     original = ET.parse(source).getroot()
     view_box = original.get("viewBox")
     if not view_box:
@@ -30,7 +30,7 @@ def square_svg(source, destination):
 
     outer = ET.Element(
         f"{{{SVG_NS}}}svg",
-        {"width": "144", "height": "144", "viewBox": "0 0 144 144"},
+        {"width": str(size), "height": str(size), "viewBox": f"0 0 {size} {size}"},
     )
     nested_attributes = {
         key: value
@@ -41,8 +41,8 @@ def square_svg(source, destination):
         {
             "x": "0",
             "y": "0",
-            "width": "144",
-            "height": "144",
+            "width": str(size),
+            "height": str(size),
             "viewBox": view_box,
             "preserveAspectRatio": "xMidYMid meet",
         }
@@ -53,6 +53,7 @@ def square_svg(source, destination):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        raise SystemExit("Usage: square-svg.py INPUT.svg OUTPUT.svg")
-    square_svg(sys.argv[1], sys.argv[2])
+    if len(sys.argv) not in (3, 4):
+        raise SystemExit("Usage: square-svg.py INPUT.svg OUTPUT.svg [SIZE]")
+    size = int(sys.argv[3]) if len(sys.argv) == 4 else 144
+    square_svg(sys.argv[1], sys.argv[2], size)

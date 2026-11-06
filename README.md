@@ -91,7 +91,7 @@ Important ordering guarantees:
 
 ## Icons
 
-All visible generated groups use 144×144 transparent PNG icons generated proportionally from the SVG source files in this repository and delivered through GitHub raw:
+Visible groups use PNG icons generated proportionally from the SVG source files in this repository and delivered through GitHub raw. Apple AI and Microsoft use 288×288 PNGs at twice the standard 144×144 resolution; the other icons remain 144×144:
 
 `assets/icons/png/`
 
@@ -101,6 +101,8 @@ Notable functional icons:
 - Final: Lucide `fish-symbol.svg`
 - Apple Push: Lucide `bell-ring.svg`
 - APNs-Fallback: Lucide `refresh-cw.svg`
+- Apple AI: Apple Intelligence icon from Apple Newsroom
+- Microsoft: transparent four-color Microsoft mark
 - Other: Lucide `globe.svg`
 
 Region flags use flag-icons. Brand SVGs primarily come from Dashboard Icons, with Anthropic from Simple Icons and Bahamut from the approved SVG source. SVG source files remain in `assets/icons/`; PNG files are generated into `assets/icons/png/`. See `assets/icons/README.md`.

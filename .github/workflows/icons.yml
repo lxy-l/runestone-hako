@@ -32,5 +32,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets/icons/png
-          git commit -m "chore: regenerate 144x144 PNG icons"
+          git commit -m "chore: regenerate PNG icons"
           git push

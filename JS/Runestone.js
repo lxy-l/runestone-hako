@@ -51,7 +51,7 @@ const ICONS = Object.freeze({
   SG: "sg.png",
   Other: "globe.png",
   Apple: "apple.png",
-  "Apple AI": "apple.png",
+  "Apple AI": "apple-intelligence.png",
   "Apple Push": "bell-ring.png",
   "APNs-Fallback": "refresh-cw.png",
   Google: "google.png",
