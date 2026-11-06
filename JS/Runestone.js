@@ -54,6 +54,7 @@ const ICONS = Object.freeze({
   "Apple AI": "apple-intelligence.png",
   "Apple Push": "bell-ring.png",
   "APNs-Fallback": "refresh-cw.png",
+  BiliIntl: "bilibili.png",
   Google: "google.png",
   Microsoft: "microsoft-transparent.png",
   OpenAI: "openai.png",
@@ -100,6 +101,7 @@ const SERVICE_DEFS = Object.freeze([
   { name: "HBO", targets: [GROUP.proxy, "US", "JP", "SG", "Other"] },
   { name: "PrimeVideo", targets: [GROUP.proxy, "US", "JP", "SG", "Other"] },
   { name: "Bahamut", targets: ["CN", "JP", "SG", GROUP.proxy] },
+  { name: "BiliIntl", targets: ["SG", "JP", GROUP.proxy] },
   { name: "Bilibili", targets: ["DIRECT", "CN", GROUP.proxy] },
   { name: "Steam", targets: ["DIRECT", GROUP.proxy, "US", "JP", "SG"] },
 ]);
@@ -306,6 +308,7 @@ function buildRuleProviders() {
     RS_PrivateDomain: domain("private"),
     RS_PrivateIP: ip("private"),
     RS_Apple: domain("apple"),
+    RS_AppleIntelligence: domain("apple-intelligence"),
     RS_AppleIP: ip("apple", "geo-lite/geoip"),
     RS_Google: domain("google"),
     RS_Microsoft: domain("microsoft"),
@@ -329,6 +332,8 @@ function buildRuleProviders() {
     RS_PrimeVideo: domain("primevideo"),
     RS_Bahamut: domain("bahamut"),
     RS_Bilibili: domain("bilibili"),
+    RS_BiliIntl: domain("biliintl"),
+    RS_AIChat: domain("category-ai-chat-!cn"),
     RS_Steam: domain("steam"),
     RS_CNDomain: domain("cn"),
     RS_CNIP: ip("cn"),
@@ -367,6 +372,7 @@ function buildRules() {
     `DOMAIN,mask-t.apple-dns.net,${GROUP.appleAI}`,
     `DOMAIN,mask.apple-dns.net,${GROUP.appleAI}`,
     `DOMAIN,apple-relay.mask.apple-dns.net,${GROUP.appleAI}`,
+    `RULE-SET,RS_AppleIntelligence,${GROUP.appleAI}`,
 
     // Preserve the Apple service identity even when its DNS/CDN points to Cloudflare.
     `RULE-SET,RS_Apple,Apple`,
@@ -400,7 +406,11 @@ function buildRules() {
 
     "RULE-SET,RS_Microsoft,Microsoft",
 
+    "RULE-SET,RS_BiliIntl,BiliIntl",
     "RULE-SET,RS_Bilibili,Bilibili",
+
+    // Catch non-CN AI chat domains not already claimed by a named service.
+    "RULE-SET,RS_AIChat,Proxy",
 
     "RULE-SET,RS_CNDomain,DIRECT",
     "RULE-SET,RS_CNIP,DIRECT,no-resolve",

@@ -72,15 +72,20 @@ all-node failover pool.
 
 ## Service policies
 
-The generic AI policy is removed. AI traffic is divided into:
+AI traffic has named service policies plus a fallback for other non-China AI
+chat domains:
 
+- Apple AI
 - OpenAI
 - Anthropic
 - Google (including Gemini)
 
+Named service rules precede the generic AI chat fallback, which routes to
+`Proxy`.
+
 Other visible service groups are Microsoft, GitHub, Telegram, X, Cloudflare,
 Amazon, TikTok, Disney+, Spotify, Meta, Emby, YouTube, Netflix, HBO,
-PrimeVideo, Bahamut, Bilibili and Steam.
+PrimeVideo, Bahamut, BiliIntl, Bilibili and Steam.
 
 Service groups keep service-specific target choices and also include `CN`
 whenever the `CN` region group exists.
@@ -90,30 +95,36 @@ whenever the `CN` region group exists.
 Specific services must precede broader overlapping rules:
 
 1. private/LAN
-2. Apple Push
-3. OpenAI / Anthropic
-4. YouTube / Google
-5. GitHub / Telegram / X / Cloudflare
-6. streaming services
-7. Amazon / TikTok / Meta / Steam
-8. Apple / Microsoft
-9. Bilibili
-10. CN direct rules
-11. `MATCH,Final`
+2. Apple Push and Apple AI exceptions
+3. general Apple
+4. OpenAI / Anthropic
+5. YouTube / Google
+6. GitHub / Telegram / X / Cloudflare
+7. streaming services
+8. Amazon / TikTok / Meta / Steam
+9. Microsoft
+10. BiliIntl / Bilibili
+11. generic AI chat fallback
+12. CN direct rules
+13. `MATCH,Final`
 
 Important guarantees:
 
 - Apple Push before Apple
+- Apple AI exceptions and Apple Intelligence before general Apple
 - YouTube before Google
 - PrimeVideo before Amazon
-- Bilibili before CN direct rules
+- BiliIntl before Bilibili and CN direct rules
+- Named AI services before generic AI chat fallback
 
 ## Rule providers
 
 MRS from MetaCubeX/meta-rules-dat is preferred for domain/ipcidr providers.
 
-Emby currently uses a small self-hosted classical rule file because there is no
-suitable MetaCubeX MRS category for the desired policy.
+Emby uses a small self-hosted classical rule file to retain domain-keyword
+matching for self-hosted servers. MetaCubeX now also provides
+`category-emby.mrs`, which can supplement the local rules if its domain coverage
+fits the deployment.
 
 ## SVG icons
 

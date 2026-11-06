@@ -17,6 +17,7 @@ const RULE_BASE = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/me
 const GROUP = Object.freeze({
   proxy: "Proxy",
   final: "Final",
+  appleAI: "Apple AI",
   applePush: "Apple Push",
   apnsFallback: "APNs-Fallback",
 });
@@ -51,8 +52,10 @@ const ICONS = Object.freeze({
   SG: "sg.png",
   Other: "globe.png",
   Apple: "apple.png",
+  "Apple AI": "apple-intelligence.png",
   "Apple Push": "bell-ring.png",
   "APNs-Fallback": "refresh-cw.png",
+  BiliIntl: "bilibili.png",
   Google: "google.png",
   Microsoft: "microsoft-transparent.png",
   OpenAI: "openai.png",
@@ -78,6 +81,8 @@ const ICONS = Object.freeze({
 
 const SERVICE_DEFS = Object.freeze([
   { name: "Apple", targets: ["DIRECT", GROUP.proxy, "US", "JP", "SG"] },
+  // Apple Intelligence and Private Relay use the dedicated Apple AI group.
+  { name: GROUP.appleAI, targets: ["US", GROUP.proxy, "JP", "SG", "DIRECT"] },
   { name: "Google", targets: [GROUP.proxy, "US", "JP", "SG", "DIRECT"] },
   { name: "Microsoft", targets: ["DIRECT", GROUP.proxy, "US", "JP"] },
   { name: "OpenAI", targets: ["US", "JP", "SG", GROUP.proxy] },
@@ -97,6 +102,7 @@ const SERVICE_DEFS = Object.freeze([
   { name: "HBO", targets: [GROUP.proxy, "US", "JP", "SG", "Other"] },
   { name: "PrimeVideo", targets: [GROUP.proxy, "US", "JP", "SG", "Other"] },
   { name: "Bahamut", targets: ["CN", "JP", "SG", GROUP.proxy] },
+  { name: "BiliIntl", targets: ["SG", "JP", GROUP.proxy] },
   { name: "Bilibili", targets: ["DIRECT", "CN", GROUP.proxy] },
   { name: "Steam", targets: ["DIRECT", GROUP.proxy, "US", "JP", "SG"] },
 ]);
@@ -349,6 +355,7 @@ function buildRuleProviders() {
     RS_PrivateDomain: domain("private"),
     RS_PrivateIP: ip("private"),
     RS_Apple: domain("apple"),
+    RS_AppleIntelligence: domain("apple-intelligence"),
     RS_Google: domain("google"),
     RS_Microsoft: domain("microsoft"),
     RS_OpenAI: domain("openai"),
@@ -371,6 +378,8 @@ function buildRuleProviders() {
     RS_PrimeVideo: domain("primevideo"),
     RS_Bahamut: domain("bahamut"),
     RS_Bilibili: domain("bilibili"),
+    RS_BiliIntl: domain("biliintl"),
+    RS_AIChat: domain("category-ai-chat-!cn"),
     RS_Steam: domain("steam"),
     RS_CNDomain: domain("cn"),
     RS_CNIP: ip("cn"),
@@ -391,6 +400,24 @@ function buildRules() {
     "RULE-SET,RS_PrivateIP,DIRECT,no-resolve",
 
     "DOMAIN-SUFFIX,push.apple.com,Apple Push",
+
+    // Keep Apple Intelligence / Private Relay exceptions ahead of general Apple and CDN rules.
+    `DOMAIN,guzzoni.apple.com,${GROUP.appleAI}`,
+    `DOMAIN,api-siri-prod.apple.com,${GROUP.appleAI}`,
+    `DOMAIN-SUFFIX,smoot.apple.com,${GROUP.appleAI}`,
+    `DOMAIN,apple-relay.cloudflare.com,${GROUP.appleAI}`,
+    `DOMAIN,apple-relay.fastly-edge.com,${GROUP.appleAI}`,
+    `DOMAIN,cp4.cloudflare.com,${GROUP.appleAI}`,
+    `DOMAIN,apple-relay.apple.com,${GROUP.appleAI}`,
+    `DOMAIN,mask-api.icloud.com,${GROUP.appleAI}`,
+    `DOMAIN,mask.icloud.com,${GROUP.appleAI}`,
+    `DOMAIN,mask-h2.icloud.com,${GROUP.appleAI}`,
+    `DOMAIN,mask-api.fe.apple-dns.net,${GROUP.appleAI}`,
+    `DOMAIN,mask-t.apple-dns.net,${GROUP.appleAI}`,
+    `DOMAIN,mask.apple-dns.net,${GROUP.appleAI}`,
+    `DOMAIN,apple-relay.mask.apple-dns.net,${GROUP.appleAI}`,
+    `RULE-SET,RS_AppleIntelligence,${GROUP.appleAI}`,
+    "RULE-SET,RS_Apple,Apple",
 
     "RULE-SET,RS_OpenAI,OpenAI",
     "RULE-SET,RS_Anthropic,Anthropic",
@@ -418,10 +445,13 @@ function buildRules() {
     "RULE-SET,RS_Meta,Meta",
     "RULE-SET,RS_Steam,Steam",
 
-    "RULE-SET,RS_Apple,Apple",
     "RULE-SET,RS_Microsoft,Microsoft",
 
+    "RULE-SET,RS_BiliIntl,BiliIntl",
     "RULE-SET,RS_Bilibili,Bilibili",
+
+    // Keep the broad AI chat fallback below all named service rules.
+    "RULE-SET,RS_AIChat,Proxy",
 
     "RULE-SET,RS_CNDomain,DIRECT",
     "RULE-SET,RS_CNIP,DIRECT,no-resolve",

@@ -49,6 +49,7 @@ Apple Push also lists each available region for direct selection. `APNs-Fallback
 ### Services
 
 - Apple
+- Apple AI
 - Google
 - Microsoft
 - OpenAI
@@ -68,25 +69,32 @@ Apple Push also lists each available region for direct selection. `APNs-Fallback
 - HBO
 - PrimeVideo
 - Bahamut
+- BiliIntl
 - Bilibili
 - Steam
 
 Gemini stays inside the Google policy rather than creating another visible group.
+Apple Intelligence, Siri and Private Relay traffic use the separate Apple AI
+group; non-China AI chat domains not matched by a named service fall back to
+`Proxy`.
 
 ## Rules
 
 Most service rules use MRS files from MetaCubeX/meta-rules-dat.
 
-Emby is the only current supplementary rule hosted in this repository:
+Emby keeps a supplementary rule hosted in this repository to match self-hosted
+domains containing `emby`:
 
 `rules/emby.yaml`
 
 Important ordering guarantees:
 
 - Apple Push before Apple
+- Apple AI exceptions and Apple Intelligence before general Apple
 - YouTube before Google
 - PrimeVideo before Amazon
-- Bilibili before CN direct rules
+- BiliIntl before Bilibili; Bilibili before CN direct rules
+- Named AI services before the generic AI chat fallback
 - `MATCH,Final`
 
 ## Icons
