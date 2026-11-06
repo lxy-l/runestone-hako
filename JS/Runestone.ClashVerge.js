@@ -54,7 +54,7 @@ const ICONS = Object.freeze({
   "Apple Push": "bell-ring.png",
   "APNs-Fallback": "refresh-cw.png",
   Google: "google.png",
-  Microsoft: "microsoft.png",
+  Microsoft: "microsoft-transparent.png",
   OpenAI: "openai.png",
   Anthropic: "anthropic.png",
   GitHub: "github.png",

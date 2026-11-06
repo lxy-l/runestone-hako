@@ -23,6 +23,9 @@ while IFS= read -r -d '' src; do
     --format=png \
     --output "$DST/$name.png" \
     "$tmp"
+  if [[ "$name" == "microsoft" ]]; then
+    cp "$DST/microsoft.png" "$DST/microsoft-transparent.png"
+  fi
   rm "$tmp"
 done < <(find "$SRC" -maxdepth 1 -type f -name '*.svg' -print0 | sort -z)
 

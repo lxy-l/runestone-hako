@@ -11,7 +11,7 @@ SVG files are the source artwork. GitHub Actions generates PNG files under `asse
 | anthropic.svg | Simple Icons |
 | bahamut.svg | approved Bahamut SVG source used by the project |
 
-The generated PNG files are derived from the SVG sources and are not edited independently. Apple Intelligence and Microsoft PNGs are generated at 288×288; the other icons use 144×144. The Microsoft SVG uses the Dashboard Icons four-color mark on a transparent canvas. Upstream projects retain their own licenses and brand/trademark terms. Brand marks remain subject to their respective trademark policies.
+The generated PNG files are derived from the SVG sources and are not edited independently. Apple Intelligence and Microsoft PNGs are generated at 288×288; the other icons use 144×144. The Microsoft SVG uses the Dashboard Icons four-color mark on a transparent canvas. `microsoft-transparent.png` is an alias used to avoid stale client caches while preserving the existing `microsoft.png` URL. Upstream projects retain their own licenses and brand/trademark terms. Brand marks remain subject to their respective trademark policies.
 
 Sources:
 
