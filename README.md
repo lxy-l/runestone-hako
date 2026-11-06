@@ -136,7 +136,7 @@ It provides the same groups, rules, rule-providers, icons and reference checks a
 For an immutable pin, use a commit SHA instead of `main`, for example:
 
 ```text
-https://raw.githubusercontent.com/lxy-l/runestone-hako/e6ffc2dbe51dfef349a85daca891aa5f3a771a80/JS/Runestone.js
+https://raw.githubusercontent.com/lxy-l/runestone-hako/6584f9d055bade7465c00f1a31da22a9d7500d32/JS/Runestone.js
 ```
 
 ## Security
