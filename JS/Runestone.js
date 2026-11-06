@@ -16,6 +16,7 @@ const RULE_BASE = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/me
 const GROUP = Object.freeze({
   proxy: "Proxy",
   final: "Final",
+  appleAI: "Apple AI",
   applePush: "Apple Push",
   apnsFallback: "APNs-Fallback",
 });
@@ -50,6 +51,7 @@ const ICONS = Object.freeze({
   SG: "sg.png",
   Other: "globe.png",
   Apple: "apple.png",
+  "Apple AI": "apple.png",
   "Apple Push": "bell-ring.png",
   "APNs-Fallback": "refresh-cw.png",
   Google: "google.png",
@@ -77,6 +79,8 @@ const ICONS = Object.freeze({
 
 const SERVICE_DEFS = Object.freeze([
   { name: "Apple", targets: ["DIRECT", GROUP.proxy, "US", "JP", "SG"] },
+  // Explicit Siri AI and Private Relay exceptions use US by default.
+  { name: GROUP.appleAI, targets: ["US", GROUP.proxy, "JP", "SG", "DIRECT"] },
   { name: "Google", targets: [GROUP.proxy, "US", "JP", "SG", "DIRECT"] },
   { name: "Microsoft", targets: ["DIRECT", GROUP.proxy, "US", "JP"] },
   { name: "OpenAI", targets: ["US", "JP", "SG", GROUP.proxy] },
@@ -282,12 +286,12 @@ function buildRuleProviders() {
     url: `${RULE_BASE}/geo/geosite/${file}.mrs`,
   });
 
-  const ip = (file) => ({
+  const ip = (file, directory = "geo/geoip") => ({
     type: "http",
     behavior: "ipcidr",
     format: "mrs",
     interval: SETTINGS.ruleInterval,
-    url: `${RULE_BASE}/geo/geoip/${file}.mrs`,
+    url: `${RULE_BASE}/${directory}/${file}.mrs`,
   });
 
   const classical = (url) => ({
@@ -302,6 +306,7 @@ function buildRuleProviders() {
     RS_PrivateDomain: domain("private"),
     RS_PrivateIP: ip("private"),
     RS_Apple: domain("apple"),
+    RS_AppleIP: ip("apple", "geo-lite/geoip"),
     RS_Google: domain("google"),
     RS_Microsoft: domain("microsoft"),
     RS_OpenAI: domain("openai"),
@@ -345,6 +350,28 @@ function buildRules() {
 
     "DOMAIN-SUFFIX,push.apple.com,Apple Push",
 
+    // Apple AI / Private Relay exceptions precede the general Apple and vendor/CDN rules.
+    // Keep these host-specific: broad iCloud, apple-dns.net, or ls.apple.com rules
+    // would also capture ordinary iCloud and Maps/GeoServices traffic.
+    `DOMAIN,guzzoni.apple.com,${GROUP.appleAI}`,
+    `DOMAIN,api-siri-prod.apple.com,${GROUP.appleAI}`,
+    `DOMAIN-SUFFIX,smoot.apple.com,${GROUP.appleAI}`,
+    `DOMAIN,apple-relay.cloudflare.com,${GROUP.appleAI}`,
+    `DOMAIN,apple-relay.fastly-edge.com,${GROUP.appleAI}`,
+    `DOMAIN,cp4.cloudflare.com,${GROUP.appleAI}`,
+    `DOMAIN,apple-relay.apple.com,${GROUP.appleAI}`,
+    `DOMAIN,mask-api.icloud.com,${GROUP.appleAI}`,
+    `DOMAIN,mask.icloud.com,${GROUP.appleAI}`,
+    `DOMAIN,mask-h2.icloud.com,${GROUP.appleAI}`,
+    `DOMAIN,mask-api.fe.apple-dns.net,${GROUP.appleAI}`,
+    `DOMAIN,mask-t.apple-dns.net,${GROUP.appleAI}`,
+    `DOMAIN,mask.apple-dns.net,${GROUP.appleAI}`,
+    `DOMAIN,apple-relay.mask.apple-dns.net,${GROUP.appleAI}`,
+
+    // Preserve the Apple service identity even when its DNS/CDN points to Cloudflare.
+    `RULE-SET,RS_Apple,Apple`,
+    `RULE-SET,RS_AppleIP,Apple,no-resolve`,
+
     "RULE-SET,RS_OpenAI,OpenAI",
     "RULE-SET,RS_Anthropic,Anthropic",
 
@@ -371,7 +398,6 @@ function buildRules() {
     "RULE-SET,RS_Meta,Meta",
     "RULE-SET,RS_Steam,Steam",
 
-    "RULE-SET,RS_Apple,Apple",
     "RULE-SET,RS_Microsoft,Microsoft",
 
     "RULE-SET,RS_Bilibili,Bilibili",
