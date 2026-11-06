@@ -1,6 +1,6 @@
 {
   "name": "runestone-hako",
-  "version": "20261106.231745000.0",
+  "version": "20261106.232236000.0",
   "private": true,
   "description": "Routing-only Hako/Mihomo post-merge configuration",
   "scripts": {
