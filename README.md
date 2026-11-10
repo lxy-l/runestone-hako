@@ -131,7 +131,14 @@ Use the Clash Verge Rev compatible script in the target subscription's **Extende
 https://raw.githubusercontent.com/lxy-l/runestone-hako/main/JS/Runestone.ClashVerge.js
 ```
 
-It provides the same groups, rules, rule-providers, icons and reference checks as `JS/Runestone.js`. It supports both inline `proxies` and subscription nodes supplied through `proxy-providers`. For provider-based subscriptions, regional groups use Mihomo provider filters, so they appear as selectable groups even though JavaScript cannot inspect the provider's remote node list while the script runs.
+It provides the same groups, rules, rule-providers, icons and reference checks as `JS/Runestone.js`, including the Apple IP rule set.
+
+Node sources are handled in two ways:
+
+- Inline `proxies` are bucketed by name in JavaScript.
+- `proxy-providers` are matched with Mihomo `filter` / `exclude-filter`, because the script cannot read remote node lists.
+
+Both can coexist. A region group keeps its inline members and adds provider members, so provider nodes do not disappear when a profile also ships inline nodes. Provider filters follow the same first-match-wins order as inline bucketing (`CN -> US -> JP -> SG -> Other`), so a node tagged for several regions lands in exactly one group. Custom `DIRECT` rules from the incoming profile are preserved ahead of the generated rules, and a config with neither `proxies` nor `proxy-providers` is returned unchanged.
 
 For an immutable pin, use a commit SHA instead of `main`, for example:
 

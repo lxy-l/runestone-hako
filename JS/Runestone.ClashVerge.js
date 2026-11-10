@@ -151,13 +151,20 @@ function main(config) {
     ? config["proxy-groups"].filter(isPlainObject)
     : [];
 
-  const preservedGroups = proxies.length > 0
-    ? collectDialerProxyDependencies(proxies, originalGroups, new Set(proxyNames))
-    : [];
+  // Provider nodes cannot be inspected from the script, but provider overrides
+  // may chain through a group via dialer-proxy, so keep those groups alive too.
+  const dialerRefs = proxies
+    .map((proxy) => proxy["dialer-proxy"])
+    .concat(collectProviderDialerReferences(proxyProviders));
+  const preservedGroups = collectDialerProxyDependencies(
+    dialerRefs,
+    originalGroups,
+    new Set(proxyNames),
+  );
 
-  const regionGroups = proxies.length > 0
-    ? buildRegionGroups(usableNames)
-    : buildProviderRegionGroups(providerNames);
+  // Inline nodes and provider nodes coexist in the same region groups; dropping
+  // provider members whenever inline nodes exist would hide them from the UI.
+  const regionGroups = buildRegionGroups(usableNames, providerNames);
   const generatedGroups = buildGeneratedGroups(regionGroups);
 
   validateGeneratedNames({
@@ -178,7 +185,8 @@ function main(config) {
   return fixed;
 }
 
-function buildRegionGroups(proxyNames) {
+function buildRegionGroups(proxyNames, providerNames) {
+  const providers = Array.isArray(providerNames) ? providerNames : [];
   const buckets = {};
   for (const name of REGION_ORDER) buckets[name] = [];
 
@@ -187,45 +195,61 @@ function buildRegionGroups(proxyNames) {
     buckets[matched ? matched.id : "Other"].push(proxyName);
   }
 
+  const filters = providers.length > 0 ? buildRegionFilters() : null;
   /** @type {Object[]} */
   const groups = [];
+
   for (const name of REGION_ORDER) {
     const members = buckets[name];
-    if (members.length > 0) groups.push(makeRegionGroup(name, members));
+    if (filters) {
+      groups.push(makeProviderRegionGroup(name, members, providers, filters[name]));
+    } else if (members.length > 0) {
+      groups.push(makeRegionGroup(name, members));
+    }
   }
   return groups;
 }
 
-function buildProviderRegionGroups(providerNames) {
-  const allRegionsPattern = REGIONS.map((region) => region.re.source).join("|");
-  const excludedInfoPattern = INFO_NODE_RE.source;
-  /** @type {Object[]} */
-  const groups = [];
+/**
+ * Provider filters cannot enumerate nodes, so every region group is created and
+ * Mihomo's `filter` prefixes provider nodes. Earlier regions win, mirroring the
+ * first-match-wins rule used for inline nodes, and ad/notice nodes are excluded.
+ */
+function buildRegionFilters() {
+  const filters = {};
+  const earlierPatterns = [];
 
   for (const name of REGION_ORDER) {
-    let filter;
-    let excludeFilter = `(?i)${excludedInfoPattern}`;
-
-    if (name === "Other") {
-      filter = "(?i).*";
-      excludeFilter = `(?i)(?:${allRegionsPattern}|${excludedInfoPattern})`;
-    } else {
-      const region = REGIONS.find((item) => item.id === name);
-      if (!region) throw new Error(`No region filter configured for: ${name}`);
-      filter = `(?i)${region.re.source}`;
+    const region = REGIONS.find((item) => item.id === name);
+    if (name !== "Other" && !region) {
+      throw new Error(`No region filter configured for: ${name}`);
     }
 
-    groups.push({
-      name,
-      type: "select",
-      use: [...providerNames],
-      filter,
-      "exclude-filter": excludeFilter,
-      icon: icon(name),
-    });
+    const excludePatterns = earlierPatterns.concat([INFO_NODE_RE.source]);
+    filters[name] = {
+      filter: name === "Other" ? "(?i).*" : `(?i)${region.re.source}`,
+      "exclude-filter": `(?i)(?:${excludePatterns.join("|")})`,
+    };
+
+    if (region) earlierPatterns.push(region.re.source);
   }
 
-  return groups;
+  return filters;
+}
+
+function makeProviderRegionGroup(name, inlineMembers, providerNames, filterPair) {
+  /** @type {Object} */
+  const group = {
+    name,
+    type: "select",
+    use: [...providerNames],
+    filter: filterPair.filter,
+    "exclude-filter": filterPair["exclude-filter"],
+    icon: icon(name),
+  };
+
+  if (inlineMembers.length > 0) group.proxies = [...inlineMembers];
+  return group;
 }
 
 function makeRegionGroup(name, proxies) {
@@ -335,12 +359,12 @@ function buildRuleProviders() {
     url: `${RULE_BASE}/geo/geosite/${file}.mrs`,
   });
 
-  const ip = (file) => ({
+  const ip = (file, directory = "geo/geoip") => ({
     type: "http",
     behavior: "ipcidr",
     format: "mrs",
     interval: SETTINGS.ruleInterval,
-    url: `${RULE_BASE}/geo/geoip/${file}.mrs`,
+    url: `${RULE_BASE}/${directory}/${file}.mrs`,
   });
 
   const classical = (url) => ({
@@ -356,6 +380,7 @@ function buildRuleProviders() {
     RS_PrivateIP: ip("private"),
     RS_Apple: domain("apple"),
     RS_AppleIntelligence: domain("apple-intelligence"),
+    RS_AppleIP: ip("apple", "geo-lite/geoip"),
     RS_Google: domain("google"),
     RS_Microsoft: domain("microsoft"),
     RS_OpenAI: domain("openai"),
@@ -417,7 +442,10 @@ function buildRules() {
     `DOMAIN,mask.apple-dns.net,${GROUP.appleAI}`,
     `DOMAIN,apple-relay.mask.apple-dns.net,${GROUP.appleAI}`,
     `RULE-SET,RS_AppleIntelligence,${GROUP.appleAI}`,
+
+    // Preserve the Apple service identity even when its DNS/CDN points to Cloudflare.
     "RULE-SET,RS_Apple,Apple",
+    "RULE-SET,RS_AppleIP,Apple,no-resolve",
 
     "RULE-SET,RS_OpenAI,OpenAI",
     "RULE-SET,RS_Anthropic,Anthropic",
@@ -479,7 +507,16 @@ function preserveCustomDirectRules(existingRules, generatedRules) {
     })
     : [];
 
-  return [...customDirectRules, ...generatedRules];
+  // Re-running the script must not accumulate duplicate custom rules.
+  const seen = new Set();
+  /** @type {string[]} */
+  const merged = [];
+  for (const rule of customDirectRules.concat(generatedRules)) {
+    if (seen.has(rule)) continue;
+    seen.add(rule);
+    merged.push(rule);
+  }
+  return merged;
 }
 
 function filterTargets(targets, availableRegions) {
@@ -495,7 +532,24 @@ function icon(name) {
   return `${ICON_BASE}/${file}`;
 }
 
-function collectDialerProxyDependencies(proxies, originalGroups, proxyNameSet) {
+function collectProviderDialerReferences(proxyProviders) {
+  /** @type {string[]} */
+  const refs = [];
+
+  for (const name of Object.keys(proxyProviders)) {
+    const provider = proxyProviders[name];
+    if (!isPlainObject(provider)) continue;
+
+    // override may be a YAML template string, which cannot be inspected here.
+    const override = isPlainObject(provider.override) ? provider.override : {};
+    const ref = override["dialer-proxy"];
+    if (typeof ref === "string" && ref) refs.push(ref);
+  }
+
+  return refs;
+}
+
+function collectDialerProxyDependencies(dialerRefs, originalGroups, proxyNameSet) {
   const groupMap = new Map();
   for (const group of originalGroups) {
     if (typeof group.name === "string" && group.name.trim()) {
@@ -511,8 +565,7 @@ function collectDialerProxyDependencies(proxies, originalGroups, proxyNameSet) {
   /** @type {string[]} */
   const queue = [];
 
-  for (const proxy of proxies) {
-    const ref = proxy["dialer-proxy"];
+  for (const ref of dialerRefs) {
     if (typeof ref === "string" && ref && groupMap.has(ref)) queue.push(ref);
   }
 
@@ -680,4 +733,20 @@ function assertPlainObject(value, label) {
 
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    main,
+    buildRuleProviders,
+    buildRules,
+    buildRegionGroups,
+    buildRegionFilters,
+    preserveCustomDirectRules,
+    GROUP,
+    REGIONS,
+    REGION_ORDER,
+    SERVICE_DEFS,
+    ICONS,
+  };
 }

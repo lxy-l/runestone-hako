@@ -18,14 +18,27 @@ const clashVergeSource = fs.readFileSync(require.resolve("../JS/Runestone.ClashV
 const readme = fs.readFileSync(require.resolve("../README.md"), "utf8");
 const clashVergeContext = {};
 vm.createContext(clashVergeContext);
-vm.runInContext(`${clashVergeSource}\nthis.clashVergeMain = main;`, clashVergeContext);
-const clashVergeMain = clashVergeContext.clashVergeMain;
+vm.runInContext(
+  `${clashVergeSource}
+this.clashVergeApi = { main, buildRules, buildRuleProviders, buildRegionFilters, preserveCustomDirectRules };`,
+  clashVergeContext,
+);
+const clashVergeApi = clashVergeContext.clashVergeApi;
+const clashVergeMain = clashVergeApi.main;
 
 assert.equal(
   runestoneSource.split(/\r?\n/, 1)[0],
   `// Version: ${packageJson.version}`,
 );
-assert(readme.includes(`raw.githubusercontent.com/lxy-l/runestone-hako/v${packageJson.version}/JS/Runestone.js`));
+assert.equal(
+  clashVergeSource.split(/\r?\n/, 1)[0],
+  `// Version: ${packageJson.version}`,
+);
+// update-version.mjs rewrites the README pin to a commit SHA, so accept a tag or a SHA.
+assert.match(
+  readme,
+  /raw\.githubusercontent\.com\/lxy-l\/runestone-hako\/(?:v[^/\s]+|[0-9a-f]{40})\/JS\/Runestone\.js/,
+);
 
 function proxy(name, extra = {}) {
   return { name, type: "ss", server: "127.0.0.1", port: 443, ...extra };
@@ -179,6 +192,90 @@ function ruleIndex(prefix) {
   assert(groupByName(output, "HBO"));
   assert(groupByName(output, "Bahamut"));
   assert.equal(output.rules.at(-1), "MATCH,Final");
+}
+
+{
+  // Parity: the Clash Verge script must emit the same rules as the Hako script.
+  // Spread the vm-realm array so deepEqual compares plain local arrays.
+  assert.deepEqual([...clashVergeApi.buildRules()], buildRules());
+  const providers = clashVergeApi.buildRuleProviders();
+  assert.equal(providers.RS_AppleIP.behavior, "ipcidr");
+  assert.match(providers.RS_AppleIP.url, /meta-rules-dat\/meta\/geo-lite\/geoip\/apple\.mrs$/);
+  assert.deepEqual(Object.keys(providers), Object.keys(buildRuleProviders()));
+}
+
+{
+  // Inline nodes and provider nodes share the same region groups.
+  const output = clashVergeMain({
+    proxies: [proxy("🇺🇸 Inline-US")],
+    "proxy-providers": { p1: { type: "http", url: "https://example.invalid/sub" } },
+  });
+  const us = groupByName(output, "US");
+  assert.equal(us.type, "select");
+  assert.deepEqual(Array.from(us.proxies), ["🇺🇸 Inline-US"]);
+  assert.deepEqual(Array.from(us.use), ["p1"]);
+  assert.match(us.filter, /🇺🇸/);
+
+  const jp = groupByName(output, "JP");
+  assert.deepEqual(Array.from(jp.use), ["p1"]);
+  assert.equal(jp.proxies, undefined, "empty inline bucket must not emit proxies: []");
+  assert(groupByName(output, "CN"));
+  assert(groupByName(output, "SG"));
+  assert(groupByName(output, "Other"));
+}
+
+{
+  // Region filters follow the same first-match-wins order as inline bucketing.
+  const filters = clashVergeApi.buildRegionFilters();
+  assert.equal(filters.Other.filter, "(?i).*");
+  assert(!filters.CN["exclude-filter"].includes("香港"));
+  assert(filters.US["exclude-filter"].includes("香港"));
+  assert(filters.JP["exclude-filter"].includes("美国"));
+  for (const pattern of ["香港", "美国", "日本", "新加坡"]) {
+    assert(filters.Other["exclude-filter"].includes(pattern), pattern);
+  }
+}
+
+{
+  // Providers can chain through a group, so dialer-proxy closures must survive.
+  const output = clashVergeMain({
+    "proxy-providers": {
+      p1: {
+        type: "http",
+        url: "https://example.invalid/sub",
+        override: { "dialer-proxy": "Relay" },
+      },
+    },
+    "proxy-groups": [
+      { name: "Relay-Base", type: "select", proxies: ["DIRECT"] },
+      { name: "Relay", type: "select", proxies: ["Relay-Base"] },
+      { name: "Unused", type: "select", proxies: ["DIRECT"] },
+    ],
+  });
+  const names = output["proxy-groups"].map((group) => group.name);
+  assert(names.includes("Relay"));
+  assert(names.includes("Relay-Base"));
+  assert(!names.includes("Unused"));
+}
+
+{
+  // Re-running must not duplicate preserved custom DIRECT rules.
+  const first = clashVergeMain({
+    proxies: [proxy("🇺🇸 US-01")],
+    rules: ["DOMAIN-SUFFIX,intranet.test,DIRECT", "DOMAIN-SUFFIX,blocked.test,REJECT"],
+  });
+  const second = clashVergeMain(first);
+  const occurrences = (rule) => second.rules.filter((item) => item === rule).length;
+  assert.equal(occurrences("DOMAIN-SUFFIX,intranet.test,DIRECT"), 1);
+  assert.equal(occurrences("DOMAIN-SUFFIX,lan,DIRECT"), 1);
+  assert.equal(occurrences("IP-CIDR,10.0.0.0/8,DIRECT,no-resolve"), 1);
+  assert(!second.rules.includes("DOMAIN-SUFFIX,blocked.test,REJECT"));
+}
+
+{
+  // The Clash Verge script is opt-in: untouched configs must pass through.
+  const input = { "mixed-port": 7890, rules: ["MATCH,DIRECT"] };
+  assert.equal(clashVergeMain(input), input);
 }
 
 {
