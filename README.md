@@ -143,7 +143,7 @@ Both can coexist. A region group keeps its inline members and adds provider memb
 For an immutable pin, use a commit SHA instead of `main`, for example:
 
 ```text
-https://raw.githubusercontent.com/lxy-l/runestone-hako/6584f9d055bade7465c00f1a31da22a9d7500d32/JS/Runestone.js
+https://raw.githubusercontent.com/lxy-l/runestone-hako/aa67ae01b023da0ceb360f0787632d211b2bd88c/JS/Runestone.js
 ```
 
 ## Security
